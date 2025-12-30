@@ -2,43 +2,93 @@
 
 An AI-powered assistant that integrates with **enterprise Jira and Confluence** instances to help you manage work items and access team documentation.
 
+**✨ New in v2.0**: Now powered by **MCP (Model Context Protocol) + Claude Skills** for smarter, more flexible interactions!
+
 ## 🚀 Quick Start (Using Makefile)
 
 ```bash
-make setup      # Install everything
+make setup      # Install everything (Python, Electron, MCP server)
 make config     # Create configuration files
+make chat       # Start interactive AI chat (NEW!)
 make app        # Launch desktop app
 ```
 
 **See all commands:** `make help` or just `make`
 
-## Features
+## ✨ Features
 
-### Jira Integration
+### 🎯 New: Interactive AI Chat (v2.0)
+- 💬 **Natural Language Interface**: Just ask questions in plain English
+- 🧠 **Context-Aware**: Uses Claude Skills for best practices
+- 🔧 **MCP Tools**: Standardized interface to Jira/Confluence
+- 📚 **Workflow Knowledge**: Built-in expertise for Jira, Confluence, and trading domain
+
+### 🎫 Jira Integration
 - ✅ Fetch work items assigned to you from Jira boards
 - ✅ Filter by Sprint (active, future, or all issues)
-- ✅ Support for custom boards
+- ✅ Create, update, and comment on tickets
+- ✅ Search using JQL (Jira Query Language)
 - ✅ AI-powered analysis and insights
 
-### Confluence Integration
+### 📚 Confluence Integration
 - ✅ Search team Confluence pages
 - ✅ Read and analyze page content
+- ✅ Create and update documentation
 - ✅ Get recently updated pages
 - ✅ AI-powered summarization
 
-### Enterprise-Ready
+### 🏢 Enterprise-Ready
 - ✅ Works with **self-hosted/on-premise** Atlassian instances
 - ✅ Support for **custom domains** (e.g., confluence.companyinternal.com)
 - ✅ **SSO compatible** via Personal Access Tokens (PAT)
-- ✅ Direct REST API integration (no MCP dependency)
+- ✅ **MCP Architecture**: Modern, extensible design
 - ✅ **Fully configurable** - works with any Jira/Confluence deployment
 
 ## Requirements
 
 - Python 3.9+
+- Node.js 16+ (for desktop app)
 - Enterprise Jira and/or Confluence instance
 - Personal Access Token (PAT) for authentication
 - Anthropic API key
+
+## Architecture
+
+```
+┌──────────────────────────────┐
+│   Claude Agent SDK           │
+│   - MCP Server Integration   │
+│   - Skills Loader            │
+│   - AI Orchestration         │
+└──────────┬───────────────────┘
+           │
+    ┌──────┴──────┐
+    │             │
+┌───▼────┐   ┌───▼────────┐
+│Python  │   │ Electron   │
+│  CLI   │   │    App     │
+└────────┘   └────────────┘
+    │             │
+    └──────┬──────┘
+           │
+    ┌──────▼────────┐
+    │  MCP Server   │
+    │  (Tools)      │
+    └──────┬────────┘
+           │
+    ┌──────┴──────┐
+    │             │
+┌───▼───┐   ┌────▼────────┐
+│ Jira  │   │ Confluence  │
+└───────┘   └─────────────┘
+
+┌─────────────────────┐
+│  Claude Skills      │
+│  - Jira Workflow    │
+│  - Confluence Docs  │
+│  - Trading Context  │
+└─────────────────────┘
+```
 
 ## Quick Start
 
@@ -119,7 +169,39 @@ This tool uses **Personal Access Tokens (PAT)** which work with enterprise SSO s
 
 ## Usage
 
-### Jira Commands
+### New: Interactive Chat (v2.0)
+
+**Start an interactive AI chat session:**
+```bash
+make chat
+```
+
+Then ask questions naturally:
+```
+> Show me my sprint tasks
+> What are my high priority bugs?
+> Search for API documentation in Confluence
+> Create a ticket for implementing user authentication
+> Analyze my workload this week
+```
+
+**Send a single message:**
+```bash
+make chat-message MSG="Show me my sprint tasks"
+```
+
+**Quick actions:**
+```bash
+make chat-message MSG="What should I prioritize today?"
+make chat-message MSG="Find recent deployment documentation"
+make chat-message MSG="Show me blocked tickets"
+```
+
+### Legacy: Direct CLI Commands
+
+These commands still work for backward compatibility:
+
+#### Jira Commands
 
 **Get Sprint issues (default):**
 ```bash
@@ -199,24 +281,67 @@ python -m src.main confluence search "deployment" --analyze
 
 ```
 confluence_assistant/
-├── src/
-│   ├── __init__.py
-│   ├── main.py               # CLI entry point
-│   ├── agent.py              # AI Agent orchestration
-│   ├── config.py             # Configuration management
-│   ├── jira_api.py           # Jira REST API client
-│   ├── jira_service.py       # Jira business logic
-│   ├── confluence_api.py     # Confluence REST API client
-│   └── confluence_service.py # Confluence business logic
-├── .env.example              # Environment template
-├── requirements.txt          # Python dependencies
-├── setup.sh                  # Automated setup script
-├── run.sh                    # Quick run script
-├── README.md
-└── TROUBLESHOOTING.md
+├── Makefile                  # Main entry point - ALL COMMANDS HERE
+├── README.md                 # This file
+├── REFACTORING_GUIDE.md      # v2.0 architecture guide
+│
+├── src/                      # Python CLI
+│   ├── main.py              # CLI entry point
+│   ├── agent_sdk.py         # NEW: Agent SDK implementation
+│   ├── agent.py             # Legacy agent (still supported)
+│   ├── config.py            # Configuration
+│   ├── jira_api.py          # Jira API wrapper
+│   └── confluence_api.py    # Confluence API wrapper
+│
+├── mcp-server/              # NEW: MCP Server
+│   ├── server.py            # MCP entry point
+│   ├── requirements.txt     # MCP dependencies
+│   └── atlassian_mcp/
+│       ├── jira_tools.py    # Jira MCP tools
+│       ├── confluence_tools.py # Confluence MCP tools
+│       ├── jira_client.py
+│       └── confluence_client.py
+│
+├── .claude/skills/          # NEW: Claude Skills
+│   ├── jira-workflow/       # Jira best practices
+│   ├── confluence-workflow/ # Documentation patterns
+│   └── trading-context/     # Domain knowledge
+│
+└── electron-app/            # Desktop App
+    ├── src/
+    │   ├── main/           # Electron main process
+    │   ├── renderer/       # UI
+    │   └── backend/
+    │       ├── agent-client.js # NEW: Simplified client
+    │       └── config.js
+    └── package.json
 ```
 
 ## How It Works
+
+### v2.0 Architecture (MCP + Skills)
+
+1. **MCP Server**: Provides standardized tools for Jira/Confluence operations
+2. **Claude Skills**: Contains workflow best practices and domain knowledge
+3. **Agent SDK**: Orchestrates interactions between Claude, MCP server, and Skills
+4. **Natural Language**: Ask questions naturally, AI handles the rest
+
+**Example Flow**:
+```
+User: "Show me my high priority tasks"
+  ↓
+Agent SDK: Understands intent
+  ↓
+Loads: jira-workflow Skill (best practices)
+  ↓
+Calls: search_jira_tickets MCP tool with JQL
+  ↓
+Claude: Analyzes results with context from Skills
+  ↓
+Returns: Formatted, actionable response
+```
+
+### Legacy Mode (Still Supported)
 
 1. **Direct API Access**: Connects directly to your enterprise Jira/Confluence instances via REST API
 2. **PAT Authentication**: Uses Personal Access Tokens for secure, SSO-compatible authentication
@@ -248,19 +373,55 @@ The tool uses CQL (Confluence Query Language) for searches. Customize in `src/co
 
 ## Next Steps
 
-1. Run the setup:
+### Quick Start (3 commands)
+
+```bash
+make setup      # Install everything
+make config     # Create config files (then edit with your credentials)
+make chat       # Start chatting!
+```
+
+### Full Setup
+
+1. **Install dependencies:**
    ```bash
-   ./setup.sh
+   make setup
    ```
 
-2. Configure your credentials in `.env`
-
-3. Test the agent:
+2. **Configure credentials:**
    ```bash
-   ./run.sh
+   make config
+   # Then edit .env, electron-app/.env, and mcp-server/.env
    ```
 
-4. If you encounter issues, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+3. **Test the setup:**
+   ```bash
+   make status     # Check installation
+   make chat       # Try interactive chat
+   make app        # Launch desktop app
+   ```
+
+4. **Explore:**
+   ```bash
+   make help           # See all commands
+   make list-skills    # View available Skills
+   ```
+
+## Documentation
+
+| File | Purpose |
+|------|---------|
+| `README.md` | This file - main documentation |
+| `REFACTORING_GUIDE.md` | v2.0 architecture and migration guide |
+| `QUICK_REFERENCE.md` | Command cheat sheet |
+| `MAKEFILE_GUIDE.md` | Comprehensive Makefile documentation |
+| `CONFIGURATION_GUIDE.md` | Configuration details |
+| `TROUBLESHOOTING.md` | Common issues and solutions |
+| `mcp-server/README.md` | MCP server documentation |
+
+## Troubleshooting
+
+See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) or [REFACTORING_GUIDE.md](REFACTORING_GUIDE.md#troubleshooting)
 
 ## Sources
 

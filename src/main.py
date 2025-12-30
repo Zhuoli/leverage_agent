@@ -1,6 +1,14 @@
 import argparse
+import sys
 from .config import get_config
 from .agent import AtlassianAgent
+
+# Try to import SDK agent (may not be available yet)
+try:
+    from .agent_sdk import AtlassianAgentSDK
+    SDK_AVAILABLE = True
+except ImportError:
+    SDK_AVAILABLE = False
 
 
 def parse_args():
@@ -27,7 +35,25 @@ Examples:
         """
     )
 
+    # Add global flag for SDK mode
+    parser.add_argument(
+        '--sdk',
+        action='store_true',
+        help='Use new Agent SDK with MCP server (interactive mode)'
+    )
+
     subparsers = parser.add_subparsers(dest='command', help='Command to run')
+
+    # Chat command (SDK-based interactive mode)
+    chat_parser = subparsers.add_parser(
+        'chat',
+        help='Start interactive chat session with Agent SDK (MCP + Skills)'
+    )
+    chat_parser.add_argument(
+        '--message',
+        type=str,
+        help='Send a single message instead of interactive mode'
+    )
 
     # Jira command
     jira_parser = subparsers.add_parser('jira', help='Fetch Jira issues')
@@ -138,6 +164,36 @@ def main():
         print("3. See .env.example for required variables")
         return 1
 
+    # Check if using SDK mode
+    if args.command == 'chat' or args.sdk:
+        if not SDK_AVAILABLE:
+            print("\nError: Agent SDK is not available.")
+            print("Install with: pip install claude-agent-sdk")
+            print("\nOr use the legacy agent (without --sdk flag)")
+            return 1
+
+        try:
+            agent_sdk = AtlassianAgentSDK(config)
+
+            # If a message is provided, send it and exit
+            if hasattr(args, 'message') and args.message:
+                response = agent_sdk.chat(args.message)
+                print("\n" + response)
+                return 0
+
+            # Otherwise start interactive session
+            agent_sdk.start_interactive_session()
+            return 0
+
+        except Exception as e:
+            print(f"\nError initializing Agent SDK: {e}")
+            print("\nMake sure:")
+            print("1. MCP server is set up: mcp-server/server.py")
+            print("2. Skills are in place: .claude/skills/")
+            print("3. Run 'make setup' to install all dependencies")
+            return 1
+
+    # Legacy agent mode
     agent = AtlassianAgent(config)
 
     try:

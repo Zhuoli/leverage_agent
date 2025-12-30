@@ -30,13 +30,14 @@ check-deps: ## Check if required dependencies are installed
 
 ##@ Setup & Installation
 
-setup: setup-python setup-electron ## Setup both Python CLI and Electron app
+setup: setup-python setup-electron setup-mcp ## Setup everything (Python CLI, Electron app, MCP server)
 	@echo "$(GREEN)✓ Complete setup finished!$(NC)"
 	@echo ""
 	@echo "Next steps:"
 	@echo "  1. Configure: make config"
 	@echo "  2. Run CLI:   make cli-jira"
-	@echo "  3. Run App:   make app"
+	@echo "  3. Run Chat:  make chat"
+	@echo "  4. Run App:   make app"
 
 setup-python: check-deps ## Setup Python CLI environment
 	@echo "$(BLUE)Setting up Python environment...$(NC)"
@@ -49,6 +50,12 @@ setup-electron: check-deps ## Setup Electron desktop app
 	@echo "$(BLUE)Setting up Electron app...$(NC)"
 	@cd electron-app && npm install
 	@echo "$(GREEN)✓ Electron app ready$(NC)"
+
+setup-mcp: check-deps ## Setup MCP server
+	@echo "$(BLUE)Setting up MCP server...$(NC)"
+	@test -d venv || python3 -m venv venv
+	@. venv/bin/activate && pip install -r mcp-server/requirements.txt
+	@echo "$(GREEN)✓ MCP server ready$(NC)"
 
 config: ## Configure credentials (creates .env files)
 	@if [ ! -f .env ]; then \
@@ -64,6 +71,13 @@ config: ## Configure credentials (creates .env files)
 		echo "$(YELLOW)Please edit electron-app/.env with your credentials$(NC)"; \
 	else \
 		echo "$(GREEN)electron-app/.env already exists$(NC)"; \
+	fi
+	@if [ ! -f mcp-server/.env ]; then \
+		cp mcp-server/.env.example mcp-server/.env; \
+		echo "$(YELLOW)Created .env for MCP server$(NC)"; \
+		echo "$(YELLOW)Please edit mcp-server/.env with your credentials$(NC)"; \
+	else \
+		echo "$(GREEN)mcp-server/.env already exists$(NC)"; \
 	fi
 
 ##@ Python CLI Commands
@@ -86,6 +100,34 @@ cli-confluence-recent: ## Get recent Confluence pages (Python CLI)
 
 cli-help: ## Show Python CLI help
 	@. venv/bin/activate && python -m src.main --help
+
+##@ Agent SDK & MCP Commands
+
+chat: ## Start interactive chat session with Agent SDK (MCP + Skills)
+	@echo "$(BLUE)Starting interactive chat session...$(NC)"
+	@. venv/bin/activate && python -m src.main chat
+
+chat-message: ## Send a single message to Agent SDK (usage: make chat-message MSG="your message")
+	@echo "$(BLUE)Sending message to agent...$(NC)"
+	@. venv/bin/activate && python -m src.main chat --message "$(MSG)"
+
+run-mcp-server: ## Run MCP server standalone (for testing)
+	@echo "$(BLUE)Starting MCP server...$(NC)"
+	@cd mcp-server && . ../venv/bin/activate && python server.py
+
+test-mcp-tools: ## Test MCP tools (requires MCP server running)
+	@echo "$(BLUE)Testing MCP tools...$(NC)"
+	@echo "Note: This requires the MCP server to be running"
+	@. venv/bin/activate && python -m mcp_server.tests.test_tools
+
+list-skills: ## List available Claude Skills
+	@echo "$(BLUE)Available Claude Skills:$(NC)"
+	@ls -1 .claude/skills/
+	@echo ""
+	@echo "To view a skill:"
+	@echo "  cat .claude/skills/jira-workflow/SKILL.md"
+	@echo "  cat .claude/skills/confluence-workflow/SKILL.md"
+	@echo "  cat .claude/skills/trading-context/SKILL.md"
 
 ##@ Electron Desktop App Commands
 
@@ -152,7 +194,7 @@ clean-all: clean ## Clean everything including dependencies
 
 reset-config: ## Reset configuration files
 	@echo "$(YELLOW)Resetting configuration...$(NC)"
-	@rm -f .env electron-app/.env
+	@rm -f .env electron-app/.env mcp-server/.env
 	@echo "$(GREEN)✓ Configuration reset - run 'make config' to recreate$(NC)"
 
 ##@ Development
@@ -205,9 +247,14 @@ quick-start: setup config ## Complete quick start setup
 	@echo "$(GREEN)✓ Setup complete!$(NC)"
 	@echo ""
 	@echo "$(BLUE)Try these commands:$(NC)"
+	@echo "  $(GREEN)make chat$(NC)                                  - Interactive chat with AI agent"
 	@echo "  $(GREEN)make cli-jira$(NC)                              - Get your Jira tasks"
 	@echo "  $(GREEN)make app$(NC)                                   - Launch desktop app"
 	@echo "  $(GREEN)make cli-confluence-search QUERY='docs'$(NC)    - Search Confluence"
+	@echo ""
+	@echo "$(BLUE)New MCP + Skills Architecture:$(NC)"
+	@echo "  $(GREEN)make list-skills$(NC)                           - View available skills"
+	@echo "  $(GREEN)make run-mcp-server$(NC)                        - Run MCP server standalone"
 	@echo ""
 
 demo-python: ## Demo Python CLI features
@@ -237,6 +284,11 @@ status: ## Show project status
 	@echo "Python Environment:"
 	@test -d venv && echo "  $(GREEN)✓ Virtual environment exists$(NC)" || echo "  $(RED)✗ No virtual environment$(NC)"
 	@test -f .env && echo "  $(GREEN)✓ .env configured$(NC)" || echo "  $(YELLOW)○ .env not configured$(NC)"
+	@echo ""
+	@echo "MCP Server:"
+	@test -f mcp-server/server.py && echo "  $(GREEN)✓ MCP server exists$(NC)" || echo "  $(RED)✗ MCP server not found$(NC)"
+	@test -f mcp-server/.env && echo "  $(GREEN)✓ MCP .env configured$(NC)" || echo "  $(YELLOW)○ MCP .env not configured$(NC)"
+	@test -d .claude/skills && echo "  $(GREEN)✓ Skills directory exists$(NC)" || echo "  $(RED)✗ Skills not found$(NC)"
 	@echo ""
 	@echo "Electron App:"
 	@test -d electron-app/node_modules && echo "  $(GREEN)✓ Dependencies installed$(NC)" || echo "  $(RED)✗ Dependencies not installed$(NC)"

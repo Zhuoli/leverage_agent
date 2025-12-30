@@ -2,11 +2,11 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
-const ChatBot = require('../backend/chatbot');
+const AgentClient = require('../backend/agent-client');
 const ConfigManager = require('../backend/config');
 
 let mainWindow;
-let chatBot;
+let agentClient;
 let configManager;
 
 function createWindow() {
@@ -44,11 +44,11 @@ app.whenReady().then(() => {
     // Initialize configuration manager
     configManager = new ConfigManager();
 
-    // Initialize chatbot
+    // Initialize agent client
     try {
-        chatBot = new ChatBot(configManager.getConfig());
+        agentClient = new AgentClient(configManager.getConfig());
     } catch (error) {
-        console.error('Failed to initialize chatbot:', error);
+        console.error('Failed to initialize agent client:', error);
     }
 
     createWindow();
@@ -84,8 +84,8 @@ ipcMain.on('save-settings', (event, settings) => {
     try {
         configManager.saveConfig(settings);
 
-        // Reinitialize chatbot with new config
-        chatBot = new ChatBot(settings);
+        // Reinitialize agent client with new config
+        agentClient = new AgentClient(settings);
 
         event.reply('settings-saved', true);
     } catch (error) {
@@ -98,15 +98,49 @@ ipcMain.on('chat-message', async (event, data) => {
     const { message } = data;
 
     try {
-        if (!chatBot) {
-            throw new Error('ChatBot not initialized. Please configure settings first.');
+        if (!agentClient) {
+            throw new Error('Agent client not initialized. Please configure settings first.');
         }
 
-        const response = await chatBot.processMessage(message);
+        const response = await agentClient.sendMessage(message);
 
         event.reply('chat-response', { message: response });
     } catch (error) {
         console.error('Chat error:', error);
+        event.reply('chat-error', { message: error.message });
+    }
+});
+
+// Quick action handlers
+ipcMain.on('quick-action', async (event, data) => {
+    const { action } = data;
+
+    try {
+        if (!agentClient) {
+            throw new Error('Agent client not initialized. Please configure settings first.');
+        }
+
+        let response;
+        switch (action) {
+            case 'sprint-tasks':
+                response = await agentClient.getMySprintTasks();
+                break;
+            case 'high-priority':
+                response = await agentClient.getHighPriorityTasks();
+                break;
+            case 'recent-docs':
+                response = await agentClient.getRecentConfluencePages();
+                break;
+            case 'analyze-workload':
+                response = await agentClient.analyzeWorkload();
+                break;
+            default:
+                throw new Error(`Unknown quick action: ${action}`);
+        }
+
+        event.reply('chat-response', { message: response });
+    } catch (error) {
+        console.error('Quick action error:', error);
         event.reply('chat-error', { message: error.message });
     }
 });

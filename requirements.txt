@@ -1,6 +1,9 @@
 # Claude SDK
 anthropic>=0.40.0
 
+# Claude Agent SDK (for MCP and Skills)
+claude-agent-sdk>=1.0.0
+
 # Atlassian API Client
 atlassian-python-api>=3.41.0
 
