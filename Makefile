@@ -21,10 +21,12 @@ help: ## Show this help message
 check-deps: ## Check if required dependencies are installed
 	@echo "$(BLUE)Checking dependencies...$(NC)"
 	@command -v python3 >/dev/null 2>&1 || { echo "$(RED)Python 3 is required but not installed$(NC)"; exit 1; }
+	@command -v uv >/dev/null 2>&1 || { echo "$(RED)uv is required but not installed. Install it: curl -LsSf https://astral.sh/uv/install.sh | sh$(NC)"; exit 1; }
 	@command -v node >/dev/null 2>&1 || { echo "$(RED)Node.js is required but not installed$(NC)"; exit 1; }
 	@command -v npm >/dev/null 2>&1 || { echo "$(RED)npm is required but not installed$(NC)"; exit 1; }
 	@echo "$(GREEN)✓ All dependencies are installed$(NC)"
 	@echo "  Python: $$(python3 --version)"
+	@echo "  uv: $$(uv --version)"
 	@echo "  Node.js: $$(node --version)"
 	@echo "  npm: $$(npm --version)"
 
@@ -40,10 +42,9 @@ setup: setup-python setup-electron setup-mcp ## Setup everything (Python CLI, El
 	@echo "  4. Run App:   make app"
 
 setup-python: check-deps ## Setup Python CLI environment
-	@echo "$(BLUE)Setting up Python environment...$(NC)"
-	@test -d venv || python3 -m venv venv
-	@. venv/bin/activate && pip install --upgrade pip
-	@. venv/bin/activate && pip install -r requirements.txt
+	@echo "$(BLUE)Setting up Python environment with uv...$(NC)"
+	@uv venv
+	@uv sync
 	@echo "$(GREEN)✓ Python environment ready$(NC)"
 
 setup-electron: check-deps ## Setup Electron desktop app
@@ -53,9 +54,9 @@ setup-electron: check-deps ## Setup Electron desktop app
 
 setup-mcp: check-deps ## Setup MCP server
 	@echo "$(BLUE)Setting up MCP server...$(NC)"
-	@test -d venv || python3 -m venv venv
-	@. venv/bin/activate && pip install -r mcp-server/requirements.txt
-	@echo "$(GREEN)✓ MCP server ready$(NC)"
+	@uv venv
+	@uv sync
+	@echo "$(GREEN)✓ MCP server ready (dependencies managed via pyproject.toml)$(NC)"
 
 config: ## Configure credentials (creates .env files)
 	@if [ ! -f .env ]; then \
@@ -84,41 +85,41 @@ config: ## Configure credentials (creates .env files)
 
 cli-jira: ## Get your Jira sprint tasks (Python CLI)
 	@echo "$(BLUE)Fetching Jira sprint tasks...$(NC)"
-	@. venv/bin/activate && python -m src.main jira
+	@uv run python -m src.main jira
 
 cli-jira-all: ## Get all your Jira issues (Python CLI)
 	@echo "$(BLUE)Fetching all Jira issues...$(NC)"
-	@. venv/bin/activate && python -m src.main jira --all-issues
+	@uv run python -m src.main jira --all-issues
 
 cli-confluence-search: ## Search Confluence (usage: make cli-confluence-search QUERY="your search")
 	@echo "$(BLUE)Searching Confluence...$(NC)"
-	@. venv/bin/activate && python -m src.main confluence search "$(QUERY)"
+	@uv run python -m src.main confluence search "$(QUERY)"
 
 cli-confluence-recent: ## Get recent Confluence pages (Python CLI)
 	@echo "$(BLUE)Fetching recent Confluence pages...$(NC)"
-	@. venv/bin/activate && python -m src.main confluence recent
+	@uv run python -m src.main confluence recent
 
 cli-help: ## Show Python CLI help
-	@. venv/bin/activate && python -m src.main --help
+	@uv run python -m src.main --help
 
 ##@ Agent SDK & MCP Commands
 
 chat: ## Start interactive chat session with Agent SDK (MCP + Skills)
 	@echo "$(BLUE)Starting interactive chat session...$(NC)"
-	@. venv/bin/activate && python -m src.main chat
+	@uv run python -m src.main chat
 
 chat-message: ## Send a single message to Agent SDK (usage: make chat-message MSG="your message")
 	@echo "$(BLUE)Sending message to agent...$(NC)"
-	@. venv/bin/activate && python -m src.main chat --message "$(MSG)"
+	@uv run python -m src.main chat --message "$(MSG)"
 
 run-mcp-server: ## Run MCP server standalone (for testing)
 	@echo "$(BLUE)Starting MCP server...$(NC)"
-	@cd mcp-server && . ../venv/bin/activate && python server.py
+	@cd mcp-server && uv run python server.py
 
 test-mcp-tools: ## Test MCP tools (requires MCP server running)
 	@echo "$(BLUE)Testing MCP tools...$(NC)"
 	@echo "Note: This requires the MCP server to be running"
-	@. venv/bin/activate && python -m mcp_server.tests.test_tools
+	@uv run python -m mcp_server.tests.test_tools
 
 list-skills: ## List available Claude Skills
 	@echo "$(BLUE)Available Claude Skills:$(NC)"
@@ -166,15 +167,15 @@ build-app-linux: ## Build Linux desktop app (.AppImage, .deb)
 
 test-config: ## Test configuration validity
 	@echo "$(BLUE)Testing configuration...$(NC)"
-	@. venv/bin/activate && python -c "from src.config import get_config; config = get_config(); print('$(GREEN)✓ Configuration valid$(NC)')" || echo "$(RED)✗ Configuration invalid$(NC)"
+	@uv run python -c "from src.config import get_config; config = get_config(); print('$(GREEN)✓ Configuration valid$(NC)')" || echo "$(RED)✗ Configuration invalid$(NC)"
 
 test-jira: ## Test Jira connection
 	@echo "$(BLUE)Testing Jira connection...$(NC)"
-	@. venv/bin/activate && python -m src.main jira --no-analyze --max-results 1
+	@uv run python -m src.main jira --no-analyze --max-results 1
 
 test-confluence: ## Test Confluence connection
 	@echo "$(BLUE)Testing Confluence connection...$(NC)"
-	@. venv/bin/activate && python -m src.main confluence recent --space $(SPACE)
+	@uv run python -m src.main confluence recent --space $(SPACE)
 
 ##@ Maintenance
 
@@ -188,8 +189,10 @@ clean: ## Clean build artifacts and cache
 
 clean-all: clean ## Clean everything including dependencies
 	@echo "$(BLUE)Cleaning all dependencies...$(NC)"
+	@rm -rf .venv
 	@rm -rf venv
 	@rm -rf electron-app/node_modules
+	@rm -f uv.lock
 	@echo "$(GREEN)✓ All cleaned - run 'make setup' to reinstall$(NC)"
 
 reset-config: ## Reset configuration files
@@ -204,7 +207,7 @@ dev-python: ## Run Python CLI in development mode
 	@echo "Usage examples:"
 	@echo "  make cli-jira"
 	@echo "  make cli-confluence-search QUERY='api docs'"
-	@. venv/bin/activate && bash
+	@uv run bash
 
 dev-electron: app-dev ## Alias for app-dev
 
@@ -260,21 +263,22 @@ quick-start: setup config ## Complete quick start setup
 demo-python: ## Demo Python CLI features
 	@echo "$(BLUE)Python CLI Demo$(NC)"
 	@echo "\n1. Getting Jira sprint tasks..."
-	@. venv/bin/activate && python -m src.main jira --no-analyze || true
+	@uv run python -m src.main jira --no-analyze || true
 	@echo "\n2. Getting recent Confluence pages..."
-	@. venv/bin/activate && python -m src.main confluence recent || true
+	@uv run python -m src.main confluence recent || true
 
 ##@ Information
 
 version: ## Show version information
 	@echo "$(BLUE)Atlassian AI Assistant$(NC)"
-	@echo "Version: 1.0.0"
+	@echo "Version: 2.0.0"
 	@echo ""
 	@echo "Python CLI:        ./src/"
 	@echo "Electron App:      ./electron-app/"
 	@echo ""
 	@echo "Dependencies:"
-	@. venv/bin/activate && python --version 2>/dev/null || echo "  Python: Not installed"
+	@python3 --version 2>/dev/null || echo "  Python: Not installed"
+	@uv --version 2>/dev/null || echo "  uv: Not installed"
 	@node --version 2>/dev/null || echo "  Node.js: Not installed"
 	@npm --version 2>/dev/null || echo "  npm: Not installed"
 
@@ -282,7 +286,8 @@ status: ## Show project status
 	@echo "$(BLUE)Project Status:$(NC)"
 	@echo ""
 	@echo "Python Environment:"
-	@test -d venv && echo "  $(GREEN)✓ Virtual environment exists$(NC)" || echo "  $(RED)✗ No virtual environment$(NC)"
+	@test -d .venv && echo "  $(GREEN)✓ Virtual environment exists (.venv)$(NC)" || test -d venv && echo "  $(YELLOW)○ Old venv exists (run 'make clean-all && make setup')$(NC)" || echo "  $(RED)✗ No virtual environment$(NC)"
+	@test -f uv.lock && echo "  $(GREEN)✓ uv.lock exists$(NC)" || echo "  $(YELLOW)○ uv.lock not found (run 'make setup')$(NC)"
 	@test -f .env && echo "  $(GREEN)✓ .env configured$(NC)" || echo "  $(YELLOW)○ .env not configured$(NC)"
 	@echo ""
 	@echo "MCP Server:"

@@ -16,15 +16,22 @@ PYTHON_VERSION=$(python3 -c 'import sys; print(".".join(map(str, sys.version_inf
 echo "Found Python $PYTHON_VERSION"
 
 echo ""
-echo "Creating Python virtual environment..."
-python3 -m venv venv
+echo "Checking for uv..."
+if ! command -v uv &> /dev/null; then
+    echo "uv is not installed. Installing uv..."
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    export PATH="$HOME/.cargo/bin:$PATH"
+fi
 
-echo "Activating virtual environment..."
-source venv/bin/activate
+UV_VERSION=$(uv --version)
+echo "Found $UV_VERSION"
 
-echo "Installing Python dependencies..."
-pip install --upgrade pip
-pip install -r requirements.txt
+echo ""
+echo "Creating Python virtual environment with uv..."
+uv venv
+
+echo "Installing Python dependencies with uv..."
+uv sync
 
 echo ""
 echo "Setting up environment configuration..."
@@ -52,13 +59,15 @@ echo "   - Get Anthropic API key from https://console.anthropic.com/"
 echo "   - Create Personal Access Tokens in your Atlassian instance"
 echo "   - See README.md for detailed authentication instructions"
 echo ""
-echo "2. Activate the virtual environment:"
-echo "   source venv/bin/activate"
+echo "2. Run the agent (uv will handle the virtual environment automatically):"
+echo "   uv run python -m src.main jira                    # Get Jira issues"
+echo "   uv run python -m src.main confluence search \"query\"  # Search Confluence"
 echo ""
-echo "3. Run the agent:"
-echo "   python -m src.main jira              # Get Jira issues"
-echo "   python -m src.main confluence search \"query\"  # Search Confluence"
+echo "3. Or use the Makefile for convenience:"
+echo "   make chat                # Start interactive chat"
+echo "   make cli-jira            # Get Jira sprint tasks"
+echo "   make help                # See all available commands"
 echo ""
 echo "4. Get help:"
-echo "   python -m src.main --help"
+echo "   uv run python -m src.main --help"
 echo ""

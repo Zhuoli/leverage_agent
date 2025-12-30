@@ -46,11 +46,25 @@ make app        # Launch desktop app
 
 ## Requirements
 
-- Python 3.9+
+- Python 3.10+
+- **[uv](https://docs.astral.sh/uv/)** - Modern Python package manager (replaces pip/venv)
 - Node.js 16+ (for desktop app)
 - Enterprise Jira and/or Confluence instance
 - Personal Access Token (PAT) for authentication
 - Anthropic API key
+
+### Installing uv
+
+```bash
+# macOS/Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Windows
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+# Via pip (if you prefer)
+pip install uv
+```
 
 ## Architecture
 
@@ -102,18 +116,18 @@ chmod +x setup.sh
 
 ### Manual Setup
 
-1. Create and activate a virtual environment:
+1. **Install uv** (if not already installed):
 ```bash
-python3 -m venv venv
-source venv/bin/activate
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-2. Install Python dependencies:
+2. **Create virtual environment and install dependencies:**
 ```bash
-pip install -r requirements.txt
+uv venv
+uv sync
 ```
 
-3. Configure environment variables:
+3. **Configure environment variables:**
 ```bash
 cp .env.example .env
 ```
@@ -205,59 +219,59 @@ These commands still work for backward compatibility:
 
 **Get Sprint issues (default):**
 ```bash
-python -m src.main jira
+uv run python -m src.main jira
 ```
 
 **Get all your issues (not just sprints):**
 ```bash
-python -m src.main jira --all-issues
+uv run python -m src.main jira --all-issues
 ```
 
 **Get issues from a specific board:**
 ```bash
-python -m src.main jira --board-id 123
+uv run python -m src.main jira --board-id 123
 ```
 
 **Ask Claude a custom question:**
 ```bash
-python -m src.main jira --question "Which issues are blocked?"
+uv run python -m src.main jira --question "Which issues are blocked?"
 ```
 
 **Skip AI analysis (faster):**
 ```bash
-python -m src.main jira --no-analyze
+uv run python -m src.main jira --no-analyze
 ```
 
 ### Confluence Commands
 
 **Search for pages:**
 ```bash
-python -m src.main confluence search "API documentation"
+uv run python -m src.main confluence search "API documentation"
 ```
 
 **Search in a specific space:**
 ```bash
-python -m src.main confluence search "onboarding" --space TEAM
+uv run python -m src.main confluence search "onboarding" --space TEAM
 ```
 
 **Read a specific page:**
 ```bash
-python -m src.main confluence read --title "Team Guidelines"
+uv run python -m src.main confluence read --title "Team Guidelines"
 ```
 
 **Read a page by ID:**
 ```bash
-python -m src.main confluence read --page-id 123456
+uv run python -m src.main confluence read --page-id 123456
 ```
 
 **Get recently updated pages:**
 ```bash
-python -m src.main confluence recent
+uv run python -m src.main confluence recent
 ```
 
 **Search with AI analysis:**
 ```bash
-python -m src.main confluence search "deployment" --analyze
+uv run python -m src.main confluence search "deployment" --analyze
 ```
 
 ## Configuration Reference
@@ -283,6 +297,8 @@ python -m src.main confluence search "deployment" --analyze
 confluence_assistant/
 ├── Makefile                  # Main entry point - ALL COMMANDS HERE
 ├── README.md                 # This file
+├── pyproject.toml            # NEW: Python project config (uv)
+├── uv.lock                   # NEW: Dependency lock file
 ├── REFACTORING_GUIDE.md      # v2.0 architecture guide
 │
 ├── src/                      # Python CLI
@@ -295,7 +311,6 @@ confluence_assistant/
 │
 ├── mcp-server/              # NEW: MCP Server
 │   ├── server.py            # MCP entry point
-│   ├── requirements.txt     # MCP dependencies
 │   └── atlassian_mcp/
 │       ├── jira_tools.py    # Jira MCP tools
 │       ├── confluence_tools.py # Confluence MCP tools
