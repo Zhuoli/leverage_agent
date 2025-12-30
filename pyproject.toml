@@ -27,6 +27,9 @@ dependencies = [
     # Claude Agent SDK (for MCP and Skills)
     "claude-agent-sdk>=0.1.0",
 
+    # OpenAI Agents SDK (for MCP and Skills with OpenAI models)
+    "openai-agents>=0.2.0",
+
     # MCP Server
     "mcp>=1.0.0",
 

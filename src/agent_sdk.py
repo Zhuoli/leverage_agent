@@ -1,30 +1,31 @@
 """
-Refactored Atlassian Agent using Claude Agent SDK
+Atlassian Agent using Multi-Provider Architecture
 
 This agent uses the Model Context Protocol (MCP) server for Jira/Confluence access
-and Claude Skills for workflow knowledge.
+and Skills for workflow knowledge. Supports both Claude and OpenAI models.
 """
 
 import os
 from pathlib import Path
 from typing import Optional
-from claude_agent_sdk import Agent, AgentConfig
 from .config import Config
+from .providers import create_agent_provider
 
 
 class AtlassianAgentSDK:
     """
-    AI Agent for Atlassian (Jira/Confluence) using Claude Agent SDK
+    AI Agent for Atlassian (Jira/Confluence) using Multi-Provider Architecture
 
     This agent:
+    - Supports both Claude and OpenAI models
     - Connects to MCP server for Jira/Confluence tools
     - Loads Skills for workflow best practices
-    - Uses Claude to orchestrate interactions
+    - Uses provider-specific SDKs to orchestrate interactions
     """
 
     def __init__(self, config: Config, mcp_server_path: Optional[str] = None):
         """
-        Initialize the Atlassian Agent with SDK
+        Initialize the Atlassian Agent with Multi-Provider support
 
         Args:
             config: Application configuration
@@ -40,82 +41,21 @@ class AtlassianAgentSDK:
         self.mcp_server_path = str(mcp_server_path)
 
         # Determine Skills directory
-        self.skills_dir = Path(__file__).parent.parent / ".claude" / "skills"
+        self.skills_dir = str(Path(__file__).parent.parent / ".claude" / "skills")
 
-        # Create agent configuration
-        self.agent_config = AgentConfig(
-            # Anthropic API key
-            api_key=config.anthropic_api_key,
-
-            # Model selection
-            model="claude-3-5-sonnet-20241022",
-
-            # MCP server configuration
-            mcp_servers=[
-                f"stdio://python {self.mcp_server_path}"
-            ],
-
-            # Skills directory
-            skills_dir=str(self.skills_dir),
-
-            # System prompt
-            system_prompt=self._get_system_prompt()
+        # Create appropriate provider using factory
+        self.provider = create_agent_provider(
+            config,
+            self.mcp_server_path,
+            self.skills_dir
         )
 
-        # Initialize the Claude Agent SDK
-        self.agent = Agent(self.agent_config)
-
         print(f"✓ Atlassian Agent initialized")
+        print(f"  - Provider: {self.provider.get_provider_name()}")
+        print(f"  - Model: {config.model_name or 'default'}")
         print(f"  - MCP Server: {self.mcp_server_path}")
         print(f"  - Skills: {self.skills_dir}")
         print(f"  - User: {config.user_email}")
-
-    def _get_system_prompt(self) -> str:
-        """Get the system prompt for the agent"""
-        return """You are an AI assistant helping users interact with their Jira and Confluence instances.
-
-You have access to:
-1. **MCP Tools** for Jira and Confluence operations
-2. **Skills** containing best practices for:
-   - Jira workflow management
-   - Confluence documentation
-   - Trading domain context
-
-**Your Capabilities:**
-
-Jira:
-- Search tickets using JQL
-- Get sprint tasks
-- Create and update tickets
-- Add comments
-- Analyze priorities and blockers
-
-Confluence:
-- Search pages
-- Read page content
-- Create and update pages
-- Get recent updates
-- Suggest documentation structure
-
-**Guidelines:**
-
-1. **Use MCP Tools** to interact with Jira/Confluence
-2. **Reference Skills** for best practices and patterns
-3. **Provide context** from the trading domain when relevant
-4. **Be proactive**: Suggest improvements based on best practices
-5. **Format output** clearly with ticket keys, links, and summaries
-
-When users ask about their work:
-- Fetch their current sprint tasks
-- Highlight priorities and blockers
-- Suggest next actions based on ticket status
-
-When users search documentation:
-- Find relevant Confluence pages
-- Summarize key information
-- Link to related pages
-
-Always be helpful, accurate, and follow industry best practices from the Skills."""
 
     def chat(self, user_message: str) -> str:
         """
@@ -127,11 +67,7 @@ Always be helpful, accurate, and follow industry best practices from the Skills.
         Returns:
             Agent's response
         """
-        try:
-            response = self.agent.chat(user_message)
-            return response
-        except Exception as e:
-            return f"Error: {str(e)}"
+        return self.provider.chat(user_message)
 
     def start_interactive_session(self):
         """

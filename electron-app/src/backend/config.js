@@ -63,12 +63,23 @@ class ConfigManager {
     }
 
     isConfigured() {
-        return !!(
-            this.config.ANTHROPIC_API_KEY &&
+        const provider = this.config.MODEL_PROVIDER || 'claude';
+
+        // Check common requirements
+        const hasJira = !!(
             this.config.JIRA_URL &&
             this.config.JIRA_USERNAME &&
             this.config.JIRA_API_TOKEN
         );
+
+        // Check provider-specific API key
+        if (provider === 'claude') {
+            return hasJira && !!this.config.ANTHROPIC_API_KEY;
+        } else if (provider === 'openai') {
+            return hasJira && !!this.config.OPENAI_API_KEY;
+        }
+
+        return false;
     }
 }
 

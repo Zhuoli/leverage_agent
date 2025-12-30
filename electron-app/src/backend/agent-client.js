@@ -13,8 +13,13 @@ const path = require('path');
 
 class AgentClient {
     constructor(config) {
-        if (!config.ANTHROPIC_API_KEY) {
-            throw new Error('Anthropic API key is required');
+        // Validate API key based on provider
+        const provider = config.MODEL_PROVIDER || 'claude';
+        if (provider === 'claude' && !config.ANTHROPIC_API_KEY) {
+            throw new Error('Anthropic API key is required for Claude provider');
+        }
+        if (provider === 'openai' && !config.OPENAI_API_KEY) {
+            throw new Error('OpenAI API key is required for OpenAI provider');
         }
 
         this.config = config;
@@ -26,6 +31,7 @@ class AgentClient {
         this.agentPath = path.join(this.projectRoot, 'src');
 
         console.log('AgentClient initialized');
+        console.log('  - Provider:', provider);
         console.log('  - Project root:', this.projectRoot);
         console.log('  - Python path:', this.pythonPath);
     }
@@ -87,14 +93,21 @@ class AgentClient {
                 env: {
                     ...process.env,
                     // Pass through configuration from Electron's .env
-                    ANTHROPIC_API_KEY: this.config.ANTHROPIC_API_KEY,
+                    // Model provider settings
+                    MODEL_PROVIDER: this.config.MODEL_PROVIDER || 'claude',
+                    MODEL_NAME: this.config.MODEL_NAME || '',
+                    ANTHROPIC_API_KEY: this.config.ANTHROPIC_API_KEY || '',
+                    OPENAI_API_KEY: this.config.OPENAI_API_KEY || '',
+                    // Jira settings
                     JIRA_URL: this.config.JIRA_URL,
                     JIRA_USERNAME: this.config.JIRA_USERNAME,
                     JIRA_API_TOKEN: this.config.JIRA_API_TOKEN,
+                    // Confluence settings
                     CONFLUENCE_URL: this.config.CONFLUENCE_URL,
                     CONFLUENCE_USERNAME: this.config.CONFLUENCE_USERNAME,
                     CONFLUENCE_API_TOKEN: this.config.CONFLUENCE_API_TOKEN,
                     CONFLUENCE_SPACE_KEY: this.config.CONFLUENCE_SPACE_KEY,
+                    // User settings
                     USER_EMAIL: this.config.USER_EMAIL,
                     USER_DISPLAY_NAME: this.config.USER_DISPLAY_NAME
                 }

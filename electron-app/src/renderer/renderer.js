@@ -219,32 +219,67 @@ function closeSettings() {
     settingsModal.classList.remove('show');
 }
 
+function onProviderChange() {
+    const provider = document.getElementById('modelProvider').value;
+    const anthropicGroup = document.getElementById('anthropicKeyGroup');
+    const openaiGroup = document.getElementById('openaiKeyGroup');
+
+    if (provider === 'claude') {
+        anthropicGroup.style.display = 'block';
+        openaiGroup.style.display = 'none';
+    } else {
+        anthropicGroup.style.display = 'none';
+        openaiGroup.style.display = 'block';
+    }
+}
+
 function loadSettings() {
     ipcRenderer.send('get-settings');
     ipcRenderer.once('settings-loaded', (event, settings) => {
         if (settings) {
+            // Model provider settings
+            document.getElementById('modelProvider').value = settings.MODEL_PROVIDER || 'claude';
+            document.getElementById('modelName').value = settings.MODEL_NAME || '';
             document.getElementById('anthropicKey').value = settings.ANTHROPIC_API_KEY || '';
+            document.getElementById('openaiKey').value = settings.OPENAI_API_KEY || '';
+
+            // Jira settings
             document.getElementById('jiraUrl').value = settings.JIRA_URL || '';
             document.getElementById('jiraUsername').value = settings.JIRA_USERNAME || '';
             document.getElementById('jiraToken').value = settings.JIRA_API_TOKEN || '';
+
+            // Confluence settings
             document.getElementById('confluenceUrl').value = settings.CONFLUENCE_URL || '';
             document.getElementById('confluenceUsername').value = settings.CONFLUENCE_USERNAME || '';
             document.getElementById('confluenceToken').value = settings.CONFLUENCE_API_TOKEN || '';
             document.getElementById('confluenceSpace').value = settings.CONFLUENCE_SPACE_KEY || '';
+
+            // Update UI based on provider
+            onProviderChange();
         }
     });
 }
 
 function saveSettings() {
     const settings = {
+        // Model provider settings
+        MODEL_PROVIDER: document.getElementById('modelProvider').value,
+        MODEL_NAME: document.getElementById('modelName').value,
         ANTHROPIC_API_KEY: document.getElementById('anthropicKey').value,
+        OPENAI_API_KEY: document.getElementById('openaiKey').value,
+
+        // Jira settings
         JIRA_URL: document.getElementById('jiraUrl').value,
         JIRA_USERNAME: document.getElementById('jiraUsername').value,
         JIRA_API_TOKEN: document.getElementById('jiraToken').value,
+
+        // Confluence settings
         CONFLUENCE_URL: document.getElementById('confluenceUrl').value,
         CONFLUENCE_USERNAME: document.getElementById('confluenceUsername').value,
         CONFLUENCE_API_TOKEN: document.getElementById('confluenceToken').value,
         CONFLUENCE_SPACE_KEY: document.getElementById('confluenceSpace').value,
+
+        // User settings
         USER_EMAIL: document.getElementById('jiraUsername').value
     };
 

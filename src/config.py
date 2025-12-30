@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
+from typing import Optional
 
 load_dotenv()
 
@@ -9,9 +10,22 @@ load_dotenv()
 class Config(BaseModel):
     """Application configuration"""
 
+    # Model Provider Configuration
+    model_provider: str = Field(
+        default_factory=lambda: os.getenv("MODEL_PROVIDER", "claude")
+    )
+    model_name: Optional[str] = Field(
+        default_factory=lambda: os.getenv("MODEL_NAME", None)
+    )
+
     # Anthropic Configuration
     anthropic_api_key: str = Field(
         default_factory=lambda: os.getenv("ANTHROPIC_API_KEY", "")
+    )
+
+    # OpenAI Configuration
+    openai_api_key: str = Field(
+        default_factory=lambda: os.getenv("OPENAI_API_KEY", "")
     )
 
     # Jira Configuration
@@ -51,8 +65,18 @@ class Config(BaseModel):
         """Validate that all required fields are set"""
         errors = []
 
-        if not self.anthropic_api_key:
-            errors.append("ANTHROPIC_API_KEY is required")
+        # Validate provider-specific API key
+        provider = self.model_provider.lower()
+        if provider == "claude":
+            if not self.anthropic_api_key:
+                errors.append("ANTHROPIC_API_KEY is required when using Claude provider")
+        elif provider == "openai":
+            if not self.openai_api_key:
+                errors.append("OPENAI_API_KEY is required when using OpenAI provider")
+        else:
+            errors.append(f"Unknown MODEL_PROVIDER: {provider}. Supported: claude, openai")
+
+        # Validate common fields
         if not self.jira_url:
             errors.append("JIRA_URL is required")
         if not self.jira_username:
