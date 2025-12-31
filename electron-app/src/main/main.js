@@ -367,6 +367,127 @@ ipcMain.on('test-connection', async (event, settings) => {
     }
 });
 
+// Test Atlassian MCP connection
+ipcMain.on('test-atlassian-mcp-connection', async (event, settings) => {
+    try {
+        const axios = require('axios');
+
+        // Test Jira connection
+        console.log('Testing Jira connection to:', settings.JIRA_URL);
+        const jiraResponse = await axios.get(`${settings.JIRA_URL}/rest/api/3/myself`, {
+            auth: {
+                username: settings.JIRA_USERNAME,
+                password: settings.JIRA_API_TOKEN
+            },
+            timeout: 10000
+        });
+
+        console.log('Jira connection successful. User:', jiraResponse.data.displayName);
+
+        // Test Confluence connection
+        console.log('Testing Confluence connection to:', settings.CONFLUENCE_URL);
+        const confluenceResponse = await axios.get(`${settings.CONFLUENCE_URL}/rest/api/user/current`, {
+            auth: {
+                username: settings.CONFLUENCE_USERNAME,
+                password: settings.CONFLUENCE_API_TOKEN
+            },
+            timeout: 10000
+        });
+
+        console.log('Confluence connection successful. User:', confluenceResponse.data.displayName);
+
+        event.reply('atlassian-mcp-test-result', {
+            success: true,
+            message: `Jira: ${jiraResponse.data.displayName}, Confluence: ${confluenceResponse.data.displayName}`
+        });
+    } catch (error) {
+        console.error('Atlassian MCP test error:', error);
+        let errorMessage = error.message;
+
+        if (error.response) {
+            if (error.response.status === 401) {
+                errorMessage = 'Authentication failed. Please check your credentials.';
+            } else if (error.response.status === 404) {
+                errorMessage = 'URL not found. Please check your Jira/Confluence URLs.';
+            } else {
+                errorMessage = `HTTP ${error.response.status}: ${error.response.statusText}`;
+            }
+        } else if (error.code === 'ENOTFOUND') {
+            errorMessage = 'Cannot reach server. Please check your URLs.';
+        } else if (error.code === 'ETIMEDOUT') {
+            errorMessage = 'Connection timed out. Please check your network.';
+        }
+
+        event.reply('atlassian-mcp-test-result', {
+            success: false,
+            error: errorMessage
+        });
+    }
+});
+
+// Test OCI MCP connection
+ipcMain.on('test-oci-mcp-connection', async (event, settings) => {
+    try {
+        const common = require('oci-common');
+        const identity = require('oci-identity');
+        const os = require('os');
+        const path = require('path');
+
+        // Validate required settings
+        if (!settings.OCI_MCP_REGION || !settings.OCI_MCP_COMPARTMENT_ID || !settings.OCI_MCP_TENANCY_ID) {
+            throw new Error('Missing required OCI configuration');
+        }
+
+        // Determine config file path
+        const configPath = settings.OCI_MCP_CONFIG_PATH || path.join(os.homedir(), '.oci', 'config');
+        const profile = settings.OCI_MCP_PROFILE || 'DEFAULT';
+
+        console.log('Testing OCI connection with:');
+        console.log('  Config:', configPath);
+        console.log('  Profile:', profile);
+        console.log('  Region:', settings.OCI_MCP_REGION);
+
+        // Initialize OCI authentication provider
+        const provider = new common.ConfigFileAuthenticationDetailsProvider(configPath, profile);
+
+        // Create identity client
+        const identityClient = new identity.IdentityClient({
+            authenticationDetailsProvider: provider
+        });
+        identityClient.region = settings.OCI_MCP_REGION;
+
+        // Test by getting compartment details
+        console.log('Fetching compartment details...');
+        const response = await identityClient.getCompartment({
+            compartmentId: settings.OCI_MCP_COMPARTMENT_ID
+        });
+
+        const compartmentName = response.compartment.name;
+        console.log('OCI connection successful. Compartment:', compartmentName);
+
+        event.reply('oci-mcp-test-result', {
+            success: true,
+            message: `Compartment: ${compartmentName}`
+        });
+    } catch (error) {
+        console.error('OCI MCP test error:', error);
+        let errorMessage = error.message;
+
+        if (error.message.includes('ENOENT')) {
+            errorMessage = `Config file not found. Please run: oci session authenticate --profile-name ${settings.OCI_MCP_PROFILE || 'DEFAULT'} --region ${settings.OCI_MCP_REGION}`;
+        } else if (error.message.includes('NotAuthenticated') || error.message.includes('401')) {
+            errorMessage = `Session token expired. Please run: oci session authenticate --profile-name ${settings.OCI_MCP_PROFILE || 'DEFAULT'} --region ${settings.OCI_MCP_REGION}`;
+        } else if (error.message.includes('404') || error.message.includes('NotAuthorizedOrNotFound')) {
+            errorMessage = 'Compartment not found or not accessible. Please check your Compartment ID and permissions.';
+        }
+
+        event.reply('oci-mcp-test-result', {
+            success: false,
+            error: errorMessage
+        });
+    }
+});
+
 ipcMain.on('chat-message', async (event, data) => {
     const { message } = data;
 

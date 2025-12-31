@@ -425,6 +425,68 @@ function testConnection() {
     });
 }
 
+function testAtlassianMcpConnection() {
+    const resultDiv = document.getElementById('atlassianMcpTestResult');
+    resultDiv.innerHTML = '<span style="color: #0969da;">⏳ Testing Atlassian connection...</span>';
+
+    const settings = {
+        JIRA_URL: document.getElementById('jiraUrl').value,
+        JIRA_USERNAME: document.getElementById('jiraUsername').value,
+        JIRA_API_TOKEN: document.getElementById('jiraToken').value,
+        CONFLUENCE_URL: document.getElementById('confluenceUrl').value,
+        CONFLUENCE_USERNAME: document.getElementById('confluenceUsername').value,
+        CONFLUENCE_API_TOKEN: document.getElementById('confluenceToken').value,
+    };
+
+    // Validate required fields
+    if (!settings.JIRA_URL || !settings.JIRA_USERNAME || !settings.JIRA_API_TOKEN) {
+        resultDiv.innerHTML = '<span style="color: #cf222e;">❌ Please fill in all required Jira fields</span>';
+        return;
+    }
+
+    if (!settings.CONFLUENCE_URL || !settings.CONFLUENCE_USERNAME || !settings.CONFLUENCE_API_TOKEN) {
+        resultDiv.innerHTML = '<span style="color: #cf222e;">❌ Please fill in all required Confluence fields</span>';
+        return;
+    }
+
+    ipcRenderer.send('test-atlassian-mcp-connection', settings);
+    ipcRenderer.once('atlassian-mcp-test-result', (event, result) => {
+        if (result.success) {
+            resultDiv.innerHTML = `<span style="color: #1a7f37;">✅ Connection successful!<br>${result.message || ''}</span>`;
+        } else {
+            resultDiv.innerHTML = `<span style="color: #cf222e;">❌ Connection failed: ${result.error}</span>`;
+        }
+    });
+}
+
+function testOciMcpConnection() {
+    const resultDiv = document.getElementById('ociMcpTestResult');
+    resultDiv.innerHTML = '<span style="color: #0969da;">⏳ Testing OCI connection...</span>';
+
+    const settings = {
+        OCI_MCP_REGION: document.getElementById('ociMcpRegion').value,
+        OCI_MCP_COMPARTMENT_ID: document.getElementById('ociMcpCompartmentId').value,
+        OCI_MCP_TENANCY_ID: document.getElementById('ociMcpTenancyId').value,
+        OCI_MCP_CONFIG_PATH: document.getElementById('ociMcpConfigPath').value,
+        OCI_MCP_PROFILE: document.getElementById('ociMcpProfile').value,
+    };
+
+    // Validate required fields
+    if (!settings.OCI_MCP_REGION || !settings.OCI_MCP_COMPARTMENT_ID || !settings.OCI_MCP_TENANCY_ID) {
+        resultDiv.innerHTML = '<span style="color: #cf222e;">❌ Please fill in Region, Compartment ID, and Tenancy ID</span>';
+        return;
+    }
+
+    ipcRenderer.send('test-oci-mcp-connection', settings);
+    ipcRenderer.once('oci-mcp-test-result', (event, result) => {
+        if (result.success) {
+            resultDiv.innerHTML = `<span style="color: #1a7f37;">✅ Connection successful!<br>${result.message || ''}</span>`;
+        } else {
+            resultDiv.innerHTML = `<span style="color: #cf222e;">❌ Connection failed: ${result.error}</span>`;
+        }
+    });
+}
+
 // Close modal when clicking outside
 window.addEventListener('click', (event) => {
     if (event.target === settingsModal) {

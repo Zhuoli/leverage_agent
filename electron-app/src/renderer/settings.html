@@ -194,6 +194,16 @@
                         <li><strong>Cloud:</strong> <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank">Atlassian API Tokens</a></li>
                     </ul>
                 </div>
+
+                <hr class="settings-divider">
+
+                <div class="settings-section">
+                    <h3>Test Connection</h3>
+                    <div class="form-group">
+                        <button class="btn-test" onclick="testAtlassianMcpConnection()">🔌 Test Atlassian Connection</button>
+                        <div id="atlassianMcpTestResult" class="test-result"></div>
+                    </div>
+                </div>
             </div>
 
             <div class="modal-footer">
@@ -262,6 +272,16 @@
                         <li><code>oci iam tenancy get</code> - Get tenancy ID</li>
                         <li>Or find them in the OCI Console navigation menu</li>
                     </ul>
+                </div>
+
+                <hr class="settings-divider">
+
+                <div class="settings-section">
+                    <h3>Test Connection</h3>
+                    <div class="form-group">
+                        <button class="btn-test" onclick="testOciMcpConnection()">🔌 Test OCI Connection</button>
+                        <div id="ociMcpTestResult" class="test-result"></div>
+                    </div>
                 </div>
             </div>
 
