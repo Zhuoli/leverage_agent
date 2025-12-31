@@ -48,6 +48,9 @@ jobs:
           echo "✓ Backend files verified"
           ls -lh electron-app/backend-dist/cli/
 
+      - name: Clean previous build artifacts
+        run: rm -rf electron-app/dist
+
       - name: Build macOS ARM64 app
         run: cd electron-app && npm run build:mac
         env:
