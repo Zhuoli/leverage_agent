@@ -77,6 +77,11 @@ class ConfigManager {
             return hasJira && !!this.config.ANTHROPIC_API_KEY;
         } else if (provider === 'openai') {
             return hasJira && !!this.config.OPENAI_API_KEY;
+        } else if (provider === 'oci-openai') {
+            return hasJira && !!(
+                this.config.OCI_COMPARTMENT_ID &&
+                this.config.OCI_ENDPOINT
+            );
         }
 
         return false;

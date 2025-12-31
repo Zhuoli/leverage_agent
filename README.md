@@ -71,7 +71,10 @@ make package-linux   # Linux .AppImage
 - **npm 9+** - Package manager
 - Enterprise Jira and/or Confluence instance
 - Personal Access Token (PAT) for authentication
-- Anthropic API key (for Claude) or OpenAI API key
+- **AI Provider** (choose one):
+  - Anthropic API key (for Claude)
+  - OpenAI API key (for ChatGPT)
+  - OCI account with Generative AI service access (for OCI OpenAI)
 
 ---
 
@@ -90,7 +93,10 @@ make package-linux   # Linux .AppImage
 │  ├─ Config (Zod validation)    │
 │  ├─ MCP Server (10 tools)      │
 │  ├─ Skills Loader (12 skills)  │
-│  ├─ Providers (Claude/OpenAI)  │
+│  ├─ Providers (3 supported):   │
+│  │  - Claude (Anthropic)       │
+│  │  - OpenAI (ChatGPT)         │
+│  │  - OCI OpenAI (Oracle)      │
 │  └─ API Clients (Axios-based)  │
 └────────────┬───────────────────┘
              │

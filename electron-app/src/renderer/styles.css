@@ -488,6 +488,32 @@ body {
     background-color: var(--bg-secondary);
 }
 
+.btn-test {
+    padding: 10px 20px;
+    border: 2px solid var(--primary-color);
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    background-color: transparent;
+    color: var(--primary-color);
+    width: 100%;
+}
+
+.btn-test:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.test-result {
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 13px;
+    min-height: 20px;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
     width: 8px;

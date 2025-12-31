@@ -33,6 +33,9 @@ class AgentClient {
         if (provider === 'openai' && !config.OPENAI_API_KEY) {
             throw new Error('OpenAI API key is required for OpenAI provider');
         }
+        if (provider === 'oci-openai' && (!config.OCI_COMPARTMENT_ID || !config.OCI_ENDPOINT)) {
+            throw new Error('OCI Compartment ID and Endpoint are required for OCI OpenAI provider');
+        }
 
         this.config = config;
         this.conversationHistory = [];
@@ -65,6 +68,10 @@ class AgentClient {
                 modelName: this.config.MODEL_NAME || undefined,
                 anthropicApiKey: this.config.ANTHROPIC_API_KEY || '',
                 openaiApiKey: this.config.OPENAI_API_KEY || '',
+                ociCompartmentId: this.config.OCI_COMPARTMENT_ID || '',
+                ociEndpoint: this.config.OCI_ENDPOINT || '',
+                ociConfigPath: this.config.OCI_CONFIG_PATH || undefined,
+                ociProfile: this.config.OCI_PROFILE || undefined,
                 jiraUrl: this.config.JIRA_URL,
                 jiraUsername: this.config.JIRA_USERNAME,
                 jiraApiToken: this.config.JIRA_API_TOKEN,
@@ -151,6 +158,10 @@ class AgentClient {
                     MODEL_NAME: this.config.MODEL_NAME || '',
                     ANTHROPIC_API_KEY: this.config.ANTHROPIC_API_KEY || '',
                     OPENAI_API_KEY: this.config.OPENAI_API_KEY || '',
+                    OCI_COMPARTMENT_ID: this.config.OCI_COMPARTMENT_ID || '',
+                    OCI_ENDPOINT: this.config.OCI_ENDPOINT || '',
+                    OCI_CONFIG_PATH: this.config.OCI_CONFIG_PATH || '',
+                    OCI_PROFILE: this.config.OCI_PROFILE || '',
                     JIRA_URL: this.config.JIRA_URL,
                     JIRA_USERNAME: this.config.JIRA_USERNAME,
                     JIRA_API_TOKEN: this.config.JIRA_API_TOKEN,

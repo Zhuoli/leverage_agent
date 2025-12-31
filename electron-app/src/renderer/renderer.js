@@ -223,13 +223,20 @@ function onProviderChange() {
     const provider = document.getElementById('modelProvider').value;
     const anthropicGroup = document.getElementById('anthropicKeyGroup');
     const openaiGroup = document.getElementById('openaiKeyGroup');
+    const ociOpenAIGroup = document.getElementById('ociOpenAIGroup');
 
     if (provider === 'claude') {
         anthropicGroup.style.display = 'block';
         openaiGroup.style.display = 'none';
-    } else {
+        ociOpenAIGroup.style.display = 'none';
+    } else if (provider === 'openai') {
         anthropicGroup.style.display = 'none';
         openaiGroup.style.display = 'block';
+        ociOpenAIGroup.style.display = 'none';
+    } else if (provider === 'oci-openai') {
+        anthropicGroup.style.display = 'none';
+        openaiGroup.style.display = 'none';
+        ociOpenAIGroup.style.display = 'block';
     }
 }
 
@@ -242,6 +249,12 @@ function loadSettings() {
             document.getElementById('modelName').value = settings.MODEL_NAME || '';
             document.getElementById('anthropicKey').value = settings.ANTHROPIC_API_KEY || '';
             document.getElementById('openaiKey').value = settings.OPENAI_API_KEY || '';
+
+            // OCI OpenAI settings
+            document.getElementById('ociCompartmentId').value = settings.OCI_COMPARTMENT_ID || '';
+            document.getElementById('ociEndpoint').value = settings.OCI_ENDPOINT || '';
+            document.getElementById('ociConfigPath').value = settings.OCI_CONFIG_PATH || '';
+            document.getElementById('ociProfile').value = settings.OCI_PROFILE || '';
 
             // Jira settings
             document.getElementById('jiraUrl').value = settings.JIRA_URL || '';
@@ -268,6 +281,12 @@ function saveSettings() {
         ANTHROPIC_API_KEY: document.getElementById('anthropicKey').value,
         OPENAI_API_KEY: document.getElementById('openaiKey').value,
 
+        // OCI OpenAI settings
+        OCI_COMPARTMENT_ID: document.getElementById('ociCompartmentId').value,
+        OCI_ENDPOINT: document.getElementById('ociEndpoint').value,
+        OCI_CONFIG_PATH: document.getElementById('ociConfigPath').value,
+        OCI_PROFILE: document.getElementById('ociProfile').value,
+
         // Jira settings
         JIRA_URL: document.getElementById('jiraUrl').value,
         JIRA_USERNAME: document.getElementById('jiraUsername').value,
@@ -291,6 +310,31 @@ function saveSettings() {
             checkConfiguration();
         } else {
             alert('Failed to save settings. Please try again.');
+        }
+    });
+}
+
+function testConnection() {
+    const resultDiv = document.getElementById('testConnectionResult');
+    resultDiv.innerHTML = '<span style="color: #0969da;">⏳ Testing connection...</span>';
+
+    const settings = {
+        MODEL_PROVIDER: document.getElementById('modelProvider').value,
+        MODEL_NAME: document.getElementById('modelName').value,
+        ANTHROPIC_API_KEY: document.getElementById('anthropicKey').value,
+        OPENAI_API_KEY: document.getElementById('openaiKey').value,
+        OCI_COMPARTMENT_ID: document.getElementById('ociCompartmentId').value,
+        OCI_ENDPOINT: document.getElementById('ociEndpoint').value,
+        OCI_CONFIG_PATH: document.getElementById('ociConfigPath').value,
+        OCI_PROFILE: document.getElementById('ociProfile').value,
+    };
+
+    ipcRenderer.send('test-connection', settings);
+    ipcRenderer.once('connection-test-result', (event, result) => {
+        if (result.success) {
+            resultDiv.innerHTML = '<span style="color: #1a7f37;">✅ Connection successful!</span>';
+        } else {
+            resultDiv.innerHTML = `<span style="color: #cf222e;">❌ Connection failed: ${result.error}</span>`;
         }
     });
 }

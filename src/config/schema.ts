@@ -7,9 +7,9 @@ export const ConfigSchema = z
   .object({
     // Model Provider Configuration
     modelProvider: z
-      .enum(['claude', 'openai'])
+      .enum(['claude', 'openai', 'oci-openai'])
       .default('claude')
-      .describe('AI model provider (claude or openai)'),
+      .describe('AI model provider (claude, openai, or oci-openai)'),
 
     modelName: z
       .string()
@@ -27,6 +27,27 @@ export const ConfigSchema = z
       .string()
       .default('')
       .describe('OpenAI API key'),
+
+    // OCI OpenAI Configuration
+    ociCompartmentId: z
+      .string()
+      .default('')
+      .describe('OCI Compartment ID for OCI OpenAI'),
+
+    ociEndpoint: z
+      .string()
+      .default('')
+      .describe('OCI Generative AI endpoint URL'),
+
+    ociConfigPath: z
+      .string()
+      .optional()
+      .describe('Path to OCI config file (defaults to ~/.oci/config)'),
+
+    ociProfile: z
+      .string()
+      .optional()
+      .describe('OCI profile name (defaults to DEFAULT)'),
 
     // Jira Configuration
     jiraUrl: z
@@ -85,12 +106,14 @@ export const ConfigSchema = z
         return data.anthropicApiKey.length > 0;
       } else if (data.modelProvider === 'openai') {
         return data.openaiApiKey.length > 0;
+      } else if (data.modelProvider === 'oci-openai') {
+        return data.ociCompartmentId.length > 0 && data.ociEndpoint.length > 0;
       }
       return false;
     },
     {
-      message: 'API key required for selected provider',
-      path: ['anthropicApiKey', 'openaiApiKey'],
+      message: 'API key or credentials required for selected provider',
+      path: ['anthropicApiKey', 'openaiApiKey', 'ociCompartmentId', 'ociEndpoint'],
     }
   );
 

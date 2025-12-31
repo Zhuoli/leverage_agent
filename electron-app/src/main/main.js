@@ -94,6 +94,123 @@ ipcMain.on('save-settings', (event, settings) => {
     }
 });
 
+ipcMain.on('test-connection', async (event, settings) => {
+    try {
+        const { spawn } = require('child_process');
+        const path = require('path');
+
+        // Create a temporary test by trying to initialize the provider
+        // We'll use the CLI with a test message
+        const projectRoot = path.join(__dirname, '..', '..');
+        const cliPath = path.join(projectRoot, 'backend-dist', 'cli', 'index.js');
+
+        // For testing, we'll try to create the provider and send a simple message
+        const provider = settings.MODEL_PROVIDER || 'claude';
+
+        // Build environment variables
+        const env = {
+            ...process.env,
+            MODEL_PROVIDER: provider,
+            MODEL_NAME: settings.MODEL_NAME || '',
+        };
+
+        if (provider === 'claude') {
+            if (!settings.ANTHROPIC_API_KEY) {
+                throw new Error('Anthropic API key is required');
+            }
+            env.ANTHROPIC_API_KEY = settings.ANTHROPIC_API_KEY;
+        } else if (provider === 'openai') {
+            if (!settings.OPENAI_API_KEY) {
+                throw new Error('OpenAI API key is required');
+            }
+            env.OPENAI_API_KEY = settings.OPENAI_API_KEY;
+        } else if (provider === 'oci-openai') {
+            if (!settings.OCI_COMPARTMENT_ID || !settings.OCI_ENDPOINT) {
+                throw new Error('OCI Compartment ID and Endpoint are required');
+            }
+            env.OCI_COMPARTMENT_ID = settings.OCI_COMPARTMENT_ID;
+            env.OCI_ENDPOINT = settings.OCI_ENDPOINT;
+            env.OCI_CONFIG_PATH = settings.OCI_CONFIG_PATH || '';
+            env.OCI_PROFILE = settings.OCI_PROFILE || '';
+        }
+
+        // Use dummy Jira/Confluence settings for connection test
+        env.JIRA_URL = 'https://test.atlassian.net';
+        env.JIRA_USERNAME = 'test@example.com';
+        env.JIRA_API_TOKEN = 'test-token';
+        env.CONFLUENCE_URL = 'https://test.atlassian.net/wiki';
+        env.CONFLUENCE_USERNAME = 'test@example.com';
+        env.CONFLUENCE_API_TOKEN = 'test-token';
+
+        // Test with a simple message
+        const args = [
+            cliPath,
+            'chat',
+            '--message',
+            'Hello, this is a connection test.'
+        ];
+
+        const testProcess = spawn('node', args, {
+            cwd: projectRoot,
+            env: env,
+            timeout: 30000 // 30 second timeout
+        });
+
+        let stdout = '';
+        let stderr = '';
+
+        testProcess.stdout.on('data', (data) => {
+            stdout += data.toString();
+        });
+
+        testProcess.stderr.on('data', (data) => {
+            stderr += data.toString();
+        });
+
+        testProcess.on('close', (code) => {
+            if (code === 0) {
+                event.reply('connection-test-result', {
+                    success: true
+                });
+            } else {
+                // Extract meaningful error from stderr
+                const errorMsg = stderr.includes('Error')
+                    ? stderr.split('\n').find(line => line.includes('Error')) || stderr
+                    : 'Connection failed. Please check your credentials.';
+                event.reply('connection-test-result', {
+                    success: false,
+                    error: errorMsg.substring(0, 200) // Limit error message length
+                });
+            }
+        });
+
+        testProcess.on('error', (error) => {
+            event.reply('connection-test-result', {
+                success: false,
+                error: error.message
+            });
+        });
+
+        // Set a timeout
+        setTimeout(() => {
+            if (!testProcess.killed) {
+                testProcess.kill();
+                event.reply('connection-test-result', {
+                    success: false,
+                    error: 'Connection test timed out after 30 seconds'
+                });
+            }
+        }, 30000);
+
+    } catch (error) {
+        console.error('Connection test error:', error);
+        event.reply('connection-test-result', {
+            success: false,
+            error: error.message
+        });
+    }
+});
+
 ipcMain.on('chat-message', async (event, data) => {
     const { message } = data;
 

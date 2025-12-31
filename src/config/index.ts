@@ -10,12 +10,21 @@ loadEnv();
 export function loadConfig(): Config {
   const rawConfig = {
     // Model Provider
-    modelProvider: (process.env.MODEL_PROVIDER || 'claude') as 'claude' | 'openai',
+    modelProvider: (process.env.MODEL_PROVIDER || 'claude') as
+      | 'claude'
+      | 'openai'
+      | 'oci-openai',
     modelName: process.env.MODEL_NAME || undefined,
 
     // API Keys
     anthropicApiKey: process.env.ANTHROPIC_API_KEY || '',
     openaiApiKey: process.env.OPENAI_API_KEY || '',
+
+    // OCI OpenAI
+    ociCompartmentId: process.env.OCI_COMPARTMENT_ID || '',
+    ociEndpoint: process.env.OCI_ENDPOINT || '',
+    ociConfigPath: process.env.OCI_CONFIG_PATH || undefined,
+    ociProfile: process.env.OCI_PROFILE || undefined,
 
     // Jira
     jiraUrl: process.env.JIRA_URL || '',

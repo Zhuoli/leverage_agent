@@ -2,6 +2,7 @@ import type { Config } from '../config/index.js';
 import { BaseProvider } from './base.js';
 import { ClaudeProvider } from './claude-provider.js';
 import { OpenAIProvider } from './openai-provider.js';
+import { OCIOpenAIProvider } from './oci-openai-provider.js';
 
 /**
  * Factory function to create the appropriate AI provider
@@ -17,9 +18,12 @@ export function createProvider(config: Config, systemPrompt?: string): BaseProvi
     case 'openai':
       return new OpenAIProvider(config, systemPrompt);
 
+    case 'oci-openai':
+      return new OCIOpenAIProvider(config, systemPrompt);
+
     default:
       throw new Error(
-        `Unknown provider: ${provider}. Supported providers: claude, openai`
+        `Unknown provider: ${provider}. Supported providers: claude, openai, oci-openai`
       );
   }
 }
