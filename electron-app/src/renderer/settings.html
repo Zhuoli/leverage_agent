@@ -124,6 +124,32 @@
                             <span class="status-text">10 tools available</span>
                         </div>
                     </div>
+
+                    <!-- Code Repository MCP -->
+                    <div class="mcp-server-card">
+                        <div class="mcp-server-header">
+                            <div class="mcp-server-info">
+                                <div class="mcp-server-icon">📁</div>
+                                <div>
+                                    <h4>Code Repository MCP</h4>
+                                    <p class="mcp-server-desc">Access local code repositories</p>
+                                </div>
+                            </div>
+                            <div class="mcp-server-actions">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="codeRepoMcpEnabled" checked disabled>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <button class="btn-configure" onclick="openCodeRepoSettings()">
+                                    Configure →
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mcp-server-status">
+                            <span class="status-badge required">Built-in</span>
+                            <span class="status-text">Filesystem tools + Skills</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -288,6 +314,139 @@
             <div class="modal-footer">
                 <button class="btn-secondary" onclick="backToMainSettings()">← Back</button>
                 <button class="btn-primary" onclick="saveOciMcpSettings()">Save Configuration</button>
+            </div>
+        </div>
+
+        <!-- Code Repository MCP Settings View -->
+        <div id="codeRepoView" class="settings-view">
+            <div class="modal-header">
+                <button class="back-btn" onclick="backToMainSettings()">← Back</button>
+                <h2>📁 Code Repository Skills</h2>
+                <button class="close-btn" onclick="closeSettings()">×</button>
+            </div>
+
+            <div class="modal-body">
+                <div class="info-box">
+                    <strong>📘 About Repository Skills</strong>
+                    <p>
+                        Skills tell the AI assistant about your code repositories, including their locations,
+                        architecture, and how to work with them. Each skill is a markdown file that provides
+                        context to help the AI understand your codebase.
+                    </p>
+                </div>
+
+                <div class="settings-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3>Configured Repository Skills</h3>
+                        <button class="btn-primary" onclick="addNewSkill()" style="margin: 0;">
+                            + Add Repository
+                        </button>
+                    </div>
+
+                    <div id="skillsList" class="skills-list">
+                        <!-- Skills will be loaded here dynamically -->
+                        <div style="text-align: center; padding: 2rem; color: #6b7280;">
+                            <p>Loading skills...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="settings-divider">
+
+                <div class="settings-section">
+                    <h3>Skill File Location</h3>
+                    <p class="section-description">
+                        Skills are stored in the <code>.claude/skills/</code> directory. Each skill has its own folder
+                        containing a <code>SKILL.md</code> file.
+                    </p>
+                    <div class="info-box">
+                        <strong>Example structure:</strong>
+                        <pre style="margin-top: 0.5rem; font-size: 0.875rem;">
+.claude/skills/
+├── repo-payment-service/
+│   └── SKILL.md
+├── repo-trading-platform/
+│   └── SKILL.md
+└── template-technical-design/
+    └── SKILL.md</pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="backToMainSettings()">← Back</button>
+            </div>
+        </div>
+
+        <!-- Add/Edit Skill Modal (Nested within Code Repo View) -->
+        <div id="editSkillView" class="settings-view">
+            <div class="modal-header">
+                <button class="back-btn" onclick="backToCodeRepoSettings()">← Back to Skills</button>
+                <h2 id="editSkillTitle">📝 Add Repository Skill</h2>
+                <button class="close-btn" onclick="closeSettings()">×</button>
+            </div>
+
+            <div class="modal-body">
+                <div class="settings-section">
+                    <h3>Skill Information</h3>
+                    <div class="form-group">
+                        <label>Skill Name <span class="required">*</span></label>
+                        <input type="text" id="skillName" placeholder="repo-my-service">
+                        <small class="hint">Lowercase, use hyphens. Example: repo-payment-service, template-runbook</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Description <span class="required">*</span></label>
+                        <input type="text" id="skillDescription" placeholder="Payment processing service - handles transactions and refunds">
+                        <small class="hint">Brief description of the repository or template</small>
+                    </div>
+                </div>
+
+                <hr class="settings-divider">
+
+                <div class="settings-section">
+                    <h3>Repository Location</h3>
+                    <div class="form-group">
+                        <label>Repository Path <span class="required">*</span></label>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <input type="text" id="skillRepoPath" placeholder="/Users/yourname/projects/my-service" style="flex: 1;">
+                            <button class="btn-secondary" onclick="browseForDirectory()" style="margin: 0; white-space: nowrap;">
+                                Browse...
+                            </button>
+                        </div>
+                        <small class="hint">Full path to the repository on your local machine</small>
+                    </div>
+                </div>
+
+                <hr class="settings-divider">
+
+                <div class="settings-section">
+                    <h3>Additional Instructions (Optional)</h3>
+                    <div class="form-group">
+                        <label>Architecture Overview</label>
+                        <textarea id="skillArchitecture" rows="3" placeholder="Describe the high-level architecture..."></textarea>
+                        <small class="hint">What are the main components and how do they work together?</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Key Technologies</label>
+                        <input type="text" id="skillTechnologies" placeholder="Node.js, TypeScript, PostgreSQL, Redis">
+                        <small class="hint">Comma-separated list of technologies used</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Development Setup</label>
+                        <textarea id="skillDevSetup" rows="3" placeholder="How to set up the development environment..."></textarea>
+                        <small class="hint">Commands to install dependencies, run locally, etc.</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Special Notes</label>
+                        <textarea id="skillNotes" rows="3" placeholder="Any special instructions or gotchas..."></textarea>
+                        <small class="hint">Important things the AI should know when working with this repo</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="backToCodeRepoSettings()">Cancel</button>
+                <button class="btn-primary" onclick="saveSkill()">Save Skill</button>
             </div>
         </div>
 

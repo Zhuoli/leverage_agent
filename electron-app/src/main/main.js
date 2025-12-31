@@ -488,6 +488,211 @@ ipcMain.on('test-oci-mcp-connection', async (event, settings) => {
     }
 });
 
+// Skills Management IPC Handlers
+ipcMain.on('list-skills', async (event) => {
+    try {
+        const fs = require('fs').promises;
+        const path = require('path');
+
+        const skillsDir = path.join(__dirname, '../../../.claude/skills');
+
+        // Check if skills directory exists
+        try {
+            await fs.access(skillsDir);
+        } catch {
+            // Directory doesn't exist, return empty array
+            event.reply('skills-loaded', []);
+            return;
+        }
+
+        // Read all directories in skills folder
+        const items = await fs.readdir(skillsDir, { withFileTypes: true });
+        const skillDirs = items.filter(item => item.isDirectory());
+
+        const skills = [];
+
+        for (const dir of skillDirs) {
+            const skillPath = path.join(skillsDir, dir.name, 'SKILL.md');
+
+            try {
+                const content = await fs.readFile(skillPath, 'utf8');
+
+                // Parse frontmatter
+                const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
+                let name = dir.name;
+                let description = '';
+                let repoPath = '';
+
+                if (frontmatterMatch) {
+                    const frontmatter = frontmatterMatch[1];
+                    const nameMatch = frontmatter.match(/name:\s*(.+)/);
+                    const descMatch = frontmatter.match(/description:\s*(.+)/);
+
+                    if (nameMatch) name = nameMatch[1].trim();
+                    if (descMatch) description = descMatch[1].trim();
+                }
+
+                // Try to extract path from content
+                const pathMatch = content.match(/Repository Location:\s*`([^`]+)`/);
+                if (pathMatch) {
+                    repoPath = pathMatch[1];
+                }
+
+                skills.push({
+                    name: dir.name,
+                    displayName: name,
+                    description: description,
+                    path: repoPath
+                });
+            } catch (error) {
+                console.warn(`Failed to read skill ${dir.name}:`, error.message);
+            }
+        }
+
+        event.reply('skills-loaded', skills);
+    } catch (error) {
+        console.error('Failed to list skills:', error);
+        event.reply('skills-loaded', []);
+    }
+});
+
+ipcMain.on('get-skill', async (event, skillName) => {
+    try {
+        const fs = require('fs').promises;
+        const path = require('path');
+
+        const skillPath = path.join(__dirname, '../../../.claude/skills', skillName, 'SKILL.md');
+        const content = await fs.readFile(skillPath, 'utf8');
+
+        // Parse frontmatter and content
+        const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)/);
+        const skill = { name: skillName };
+
+        if (frontmatterMatch) {
+            const frontmatter = frontmatterMatch[1];
+            const body = frontmatterMatch[2];
+
+            const nameMatch = frontmatter.match(/name:\s*(.+)/);
+            const descMatch = frontmatter.match(/description:\s*(.+)/);
+
+            if (nameMatch) skill.name = nameMatch[1].trim();
+            if (descMatch) skill.description = descMatch[1].trim();
+
+            // Parse body sections
+            const pathMatch = body.match(/Repository Location:\s*`([^`]+)`/);
+            const archMatch = body.match(/## Architecture\n([\s\S]*?)(?=\n##|\n$)/);
+            const techMatch = body.match(/Technologies:\s*(.+)/);
+            const setupMatch = body.match(/## Development Setup\n([\s\S]*?)(?=\n##|\n$)/);
+            const notesMatch = body.match(/## Special Notes\n([\s\S]*?)(?=\n##|\n$)/);
+
+            if (pathMatch) skill.path = pathMatch[1];
+            if (archMatch) skill.architecture = archMatch[1].trim();
+            if (techMatch) skill.technologies = techMatch[1].trim();
+            if (setupMatch) skill.devSetup = setupMatch[1].trim();
+            if (notesMatch) skill.notes = notesMatch[1].trim();
+        }
+
+        event.reply('skill-loaded', skill);
+    } catch (error) {
+        console.error('Failed to get skill:', error);
+        event.reply('skill-loaded', null);
+    }
+});
+
+ipcMain.on('save-skill', async (event, skillData) => {
+    try {
+        const fs = require('fs').promises;
+        const path = require('path');
+
+        const skillDir = path.join(__dirname, '../../../.claude/skills', skillData.name);
+        const skillPath = path.join(skillDir, 'SKILL.md');
+
+        // Create directory if it doesn't exist
+        await fs.mkdir(skillDir, { recursive: true });
+
+        // Build skill markdown content
+        const frontmatter = `---
+name: ${skillData.description}
+description: ${skillData.description}
+---
+`;
+
+        const basicInfo = `# ${skillData.description}
+
+Repository Location: \`${skillData.path}\`
+`;
+
+        let architecture = '';
+        if (skillData.architecture) {
+            architecture = `\n## Architecture\n\n${skillData.architecture}\n`;
+        }
+
+        let technologies = '';
+        if (skillData.technologies) {
+            technologies = `\n## Key Technologies\n\nTechnologies: ${skillData.technologies}\n`;
+        }
+
+        let devSetup = '';
+        if (skillData.devSetup) {
+            devSetup = `\n## Development Setup\n\n${skillData.devSetup}\n`;
+        }
+
+        let notes = '';
+        if (skillData.notes) {
+            notes = `\n## Special Notes\n\n${skillData.notes}\n`;
+        }
+
+        const content = frontmatter + basicInfo + architecture + technologies + devSetup + notes;
+
+        // Write the file
+        await fs.writeFile(skillPath, content, 'utf8');
+
+        console.log(`Skill saved: ${skillData.name}`);
+        event.reply('skill-saved', { success: true });
+    } catch (error) {
+        console.error('Failed to save skill:', error);
+        event.reply('skill-saved', { success: false, error: error.message });
+    }
+});
+
+ipcMain.on('delete-skill', async (event, skillName) => {
+    try {
+        const fs = require('fs').promises;
+        const path = require('path');
+
+        const skillDir = path.join(__dirname, '../../../.claude/skills', skillName);
+
+        // Remove the entire skill directory
+        await fs.rm(skillDir, { recursive: true, force: true });
+
+        console.log(`Skill deleted: ${skillName}`);
+        event.reply('skill-deleted', { success: true });
+    } catch (error) {
+        console.error('Failed to delete skill:', error);
+        event.reply('skill-deleted', { success: false, error: error.message });
+    }
+});
+
+ipcMain.on('browse-directory', async (event) => {
+    try {
+        const { dialog } = require('electron');
+
+        const result = await dialog.showOpenDialog({
+            properties: ['openDirectory'],
+            title: 'Select Repository Directory'
+        });
+
+        if (!result.canceled && result.filePaths.length > 0) {
+            event.reply('directory-selected', result.filePaths[0]);
+        } else {
+            event.reply('directory-selected', null);
+        }
+    } catch (error) {
+        console.error('Failed to browse directory:', error);
+        event.reply('directory-selected', null);
+    }
+});
+
 ipcMain.on('chat-message', async (event, data) => {
     const { message } = data;
 

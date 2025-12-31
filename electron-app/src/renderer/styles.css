@@ -807,6 +807,82 @@ body {
     color: var(--text-secondary);
 }
 
+/* Skills List */
+.skills-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.skill-card {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 14px;
+    background-color: var(--bg-primary);
+    transition: all 0.2s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.skill-card:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 2px 8px rgba(0, 82, 204, 0.1);
+}
+
+.skill-info {
+    flex: 1;
+}
+
+.skill-name {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--text-primary);
+}
+
+.skill-description {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.skill-path {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-family: monospace;
+    background-color: var(--bg-secondary);
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.skill-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-icon {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background-color: white;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-icon:hover {
+    border-color: var(--primary-color);
+    background-color: var(--bg-secondary);
+}
+
+.btn-icon.danger:hover {
+    border-color: var(--danger-color);
+    background-color: #FFEBE6;
+    color: var(--danger-color);
+}
+
 /* Info and Warning Boxes */
 .info-box,
 .warning-box {

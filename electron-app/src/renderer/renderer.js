@@ -299,6 +299,155 @@ function saveOciMcpSettings() {
     saveSettings();
 }
 
+// Code Repository MCP / Skills Management
+function openCodeRepoSettings() {
+    showSettingsView('codeRepoView');
+    loadSkills();
+}
+
+function backToCodeRepoSettings() {
+    showSettingsView('codeRepoView');
+    loadSkills();
+}
+
+function loadSkills() {
+    const skillsList = document.getElementById('skillsList');
+    skillsList.innerHTML = '<div style="text-align: center; padding: 2rem; color: #6b7280;"><p>Loading skills...</p></div>';
+
+    ipcRenderer.send('list-skills');
+}
+
+ipcRenderer.on('skills-loaded', (event, skills) => {
+    const skillsList = document.getElementById('skillsList');
+
+    if (!skills || skills.length === 0) {
+        skillsList.innerHTML = `
+            <div style="text-align: center; padding: 2rem; color: #6b7280;">
+                <p>No repository skills configured yet.</p>
+                <p style="font-size: 13px; margin-top: 8px;">Click "+ Add Repository" to create your first skill.</p>
+            </div>
+        `;
+        return;
+    }
+
+    skillsList.innerHTML = skills.map(skill => `
+        <div class="skill-card">
+            <div class="skill-info">
+                <div class="skill-name">${skill.name}</div>
+                <div class="skill-description">${skill.description}</div>
+                ${skill.path ? `<div class="skill-path">${skill.path}</div>` : ''}
+            </div>
+            <div class="skill-actions">
+                <button class="btn-icon" onclick="editSkill('${skill.name}')">✏️ Edit</button>
+                <button class="btn-icon danger" onclick="deleteSkill('${skill.name}')">🗑️ Delete</button>
+            </div>
+        </div>
+    `).join('');
+});
+
+function addNewSkill() {
+    // Clear the form
+    document.getElementById('editSkillTitle').textContent = '📝 Add Repository Skill';
+    document.getElementById('skillName').value = '';
+    document.getElementById('skillName').disabled = false;
+    document.getElementById('skillDescription').value = '';
+    document.getElementById('skillRepoPath').value = '';
+    document.getElementById('skillArchitecture').value = '';
+    document.getElementById('skillTechnologies').value = '';
+    document.getElementById('skillDevSetup').value = '';
+    document.getElementById('skillNotes').value = '';
+
+    showSettingsView('editSkillView');
+}
+
+function editSkill(skillName) {
+    document.getElementById('editSkillTitle').textContent = '📝 Edit Repository Skill';
+
+    ipcRenderer.send('get-skill', skillName);
+    ipcRenderer.once('skill-loaded', (event, skill) => {
+        if (skill) {
+            document.getElementById('skillName').value = skill.name;
+            document.getElementById('skillName').disabled = true; // Don't allow renaming
+            document.getElementById('skillDescription').value = skill.description || '';
+            document.getElementById('skillRepoPath').value = skill.path || '';
+            document.getElementById('skillArchitecture').value = skill.architecture || '';
+            document.getElementById('skillTechnologies').value = skill.technologies || '';
+            document.getElementById('skillDevSetup').value = skill.devSetup || '';
+            document.getElementById('skillNotes').value = skill.notes || '';
+
+            showSettingsView('editSkillView');
+        }
+    });
+}
+
+function deleteSkill(skillName) {
+    if (confirm(`Are you sure you want to delete the skill "${skillName}"?\n\nThis will remove the skill file from .claude/skills/ directory.`)) {
+        ipcRenderer.send('delete-skill', skillName);
+
+        ipcRenderer.once('skill-deleted', (event, result) => {
+            if (result.success) {
+                loadSkills(); // Reload the skills list
+            } else {
+                alert(`Failed to delete skill: ${result.error}`);
+            }
+        });
+    }
+}
+
+function saveSkill() {
+    const skillData = {
+        name: document.getElementById('skillName').value.trim(),
+        description: document.getElementById('skillDescription').value.trim(),
+        path: document.getElementById('skillRepoPath').value.trim(),
+        architecture: document.getElementById('skillArchitecture').value.trim(),
+        technologies: document.getElementById('skillTechnologies').value.trim(),
+        devSetup: document.getElementById('skillDevSetup').value.trim(),
+        notes: document.getElementById('skillNotes').value.trim()
+    };
+
+    // Validation
+    if (!skillData.name) {
+        alert('Please provide a skill name');
+        return;
+    }
+
+    if (!skillData.description) {
+        alert('Please provide a description');
+        return;
+    }
+
+    if (!skillData.path) {
+        alert('Please provide a repository path');
+        return;
+    }
+
+    // Validate skill name format (lowercase, hyphens only)
+    if (!/^[a-z0-9-]+$/.test(skillData.name)) {
+        alert('Skill name must be lowercase and contain only letters, numbers, and hyphens');
+        return;
+    }
+
+    ipcRenderer.send('save-skill', skillData);
+
+    ipcRenderer.once('skill-saved', (event, result) => {
+        if (result.success) {
+            backToCodeRepoSettings();
+        } else {
+            alert(`Failed to save skill: ${result.error}`);
+        }
+    });
+}
+
+function browseForDirectory() {
+    ipcRenderer.send('browse-directory');
+
+    ipcRenderer.once('directory-selected', (event, directoryPath) => {
+        if (directoryPath) {
+            document.getElementById('skillRepoPath').value = directoryPath;
+        }
+    });
+}
+
 function loadSettings() {
     ipcRenderer.send('get-settings');
     ipcRenderer.once('settings-loaded', (event, settings) => {
