@@ -1,0 +1,200 @@
+name: Release Application
+
+on:
+  push:
+    tags:
+      - 'v*.*.*' # Triggers on version tags like v3.0.0, v3.1.0, etc.
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v3.0.0)'
+        required: true
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      version: ${{ steps.get_version.outputs.version }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.get_version.outputs.version }}
+          release_name: Atlassian AI Assistant ${{ steps.get_version.outputs.version }}
+          body: |
+            ## Atlassian AI Assistant ${{ steps.get_version.outputs.version }}
+
+            ### Downloads
+            - **macOS**: Download the `.dmg` file below
+            - **Windows**: Download the `.exe` file below
+            - **Linux**: Download the `.AppImage` or `.deb` file below
+
+            ### Installation
+            - **macOS**: Open the DMG file and drag the app to Applications
+            - **Windows**: Run the installer executable
+            - **Linux**: Run `chmod +x *.AppImage && ./Atlassian-AI-Assistant-*.AppImage` or install the .deb package
+
+            ### What's Changed
+            See the [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
+          draft: false
+          prerelease: false
+
+  build-and-upload-mac:
+    name: Build and Upload macOS
+    needs: create-release
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install Electron app dependencies
+        run: cd electron-app && npm ci
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Build macOS app
+        run: cd electron-app && npm run build:mac
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload DMG to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./electron-app/dist/Atlassian AI Assistant-${{ needs.create-release.outputs.version }}.dmg
+          asset_name: Atlassian-AI-Assistant-${{ needs.create-release.outputs.version }}-mac.dmg
+          asset_content_type: application/octet-stream
+
+      - name: Find and upload ZIP
+        run: |
+          ZIP_FILE=$(find electron-app/dist -name "*.zip" -type f | head -n 1)
+          if [ -f "$ZIP_FILE" ]; then
+            echo "Found ZIP: $ZIP_FILE"
+            # Upload using GitHub CLI
+            gh release upload ${{ needs.create-release.outputs.version }} "$ZIP_FILE" --clobber
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-and-upload-windows:
+    name: Build and Upload Windows
+    needs: create-release
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install Electron app dependencies
+        run: cd electron-app && npm ci
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Build Windows app
+        run: cd electron-app && npm run build:win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Find and upload installers
+        shell: bash
+        run: |
+          # Find and upload all .exe files
+          for file in electron-app/dist/*.exe; do
+            if [ -f "$file" ]; then
+              filename=$(basename "$file")
+              echo "Uploading: $filename"
+              gh release upload ${{ needs.create-release.outputs.version }} "$file" --clobber
+            fi
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-and-upload-linux:
+    name: Build and Upload Linux
+    needs: create-release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install Electron app dependencies
+        run: cd electron-app && npm ci
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Build Linux app
+        run: cd electron-app && npm run build:linux
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Find and upload installers
+        run: |
+          # Upload AppImage
+          for file in electron-app/dist/*.AppImage; do
+            if [ -f "$file" ]; then
+              echo "Uploading: $(basename "$file")"
+              gh release upload ${{ needs.create-release.outputs.version }} "$file" --clobber
+            fi
+          done
+
+          # Upload .deb
+          for file in electron-app/dist/*.deb; do
+            if [ -f "$file" ]; then
+              echo "Uploading: $(basename "$file")"
+              gh release upload ${{ needs.create-release.outputs.version }} "$file" --clobber
+            fi
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

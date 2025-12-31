@@ -235,6 +235,32 @@ make package-linux   # Linux .AppImage and .deb
 
 **Output:** Installers in `electron-app/dist/`
 
+### Automated Builds & Distribution with GitHub Actions
+
+This repository includes **GitHub Actions workflows** for automated building and releasing:
+
+- **Automatic builds** on every push to `main` branch
+- **Create releases** by pushing version tags (e.g., `git tag v3.0.0 && git push origin v3.0.0`)
+- **Multi-platform builds** (macOS, Windows, Linux) run in parallel
+- **GitHub Releases** with installers automatically uploaded
+
+**Quick release workflow:**
+```bash
+# 1. Update version in package.json files
+# 2. Commit and push
+git add package.json electron-app/package.json
+git commit -m "Bump version to 3.0.0"
+git push
+
+# 3. Create and push version tag
+git tag v3.0.0
+git push origin v3.0.0
+
+# 4. GitHub Actions automatically builds and creates release!
+```
+
+📖 **For detailed instructions**, see [BUILD_AND_DISTRIBUTION.md](BUILD_AND_DISTRIBUTION.md)
+
 ---
 
 ## Configuration Reference

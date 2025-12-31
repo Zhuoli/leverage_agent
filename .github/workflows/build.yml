@@ -1,0 +1,144 @@
+name: Build Application
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform to build'
+        required: true
+        default: 'mac'
+        type: choice
+        options:
+          - mac
+          - windows
+          - linux
+          - all
+
+jobs:
+  build-mac:
+    name: Build macOS Application
+    runs-on: macos-latest
+    if: |
+      github.event_name != 'workflow_dispatch' ||
+      github.event.inputs.platform == 'mac' ||
+      github.event.inputs.platform == 'all'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install Electron app dependencies
+        run: cd electron-app && npm ci
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Build macOS app
+        run: cd electron-app && npm run build:mac
+        env:
+          # GitHub token for publishing releases (if needed)
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-build
+          path: |
+            electron-app/dist/*.dmg
+            electron-app/dist/*.zip
+          retention-days: 7
+
+  build-windows:
+    name: Build Windows Application
+    runs-on: windows-latest
+    if: |
+      github.event.inputs.platform == 'windows' ||
+      github.event.inputs.platform == 'all'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install Electron app dependencies
+        run: cd electron-app && npm ci
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Build Windows app
+        run: cd electron-app && npm run build:win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: |
+            electron-app/dist/*.exe
+          retention-days: 7
+
+  build-linux:
+    name: Build Linux Application
+    runs-on: ubuntu-latest
+    if: |
+      github.event.inputs.platform == 'linux' ||
+      github.event.inputs.platform == 'all'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install Electron app dependencies
+        run: cd electron-app && npm ci
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Build Linux app
+        run: cd electron-app && npm run build:linux
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-build
+          path: |
+            electron-app/dist/*.AppImage
+            electron-app/dist/*.deb
+          retention-days: 7
