@@ -52,24 +52,7 @@
       ".claude-skills/**/*",
       {
         "from": "../node_modules",
-        "to": "node_modules",
-        "filter": [
-          "@anthropic-ai/**/*",
-          "@modelcontextprotocol/**/*",
-          "openai/**/*",
-          "oci-common/**/*",
-          "oci-generativeaiinference/**/*",
-          "axios/**/*",
-          "axios-retry/**/*",
-          "zod/**/*",
-          "commander/**/*",
-          "chalk/**/*",
-          "ora/**/*",
-          "gray-matter/**/*",
-          "pino/**/*",
-          "jssha/**/*",
-          "http-signature/**/*"
-        ]
+        "to": "node_modules"
       }
     ],
     "mac": {
