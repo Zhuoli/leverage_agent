@@ -130,10 +130,10 @@ package: build ## Build installer for current platform
 	@echo "$(GREEN)✓ Build complete!$(NC)"
 	@echo "$(GREEN)Installers are in: electron-app/dist/$(NC)"
 
-package-mac: build ## Build macOS installer (.dmg)
-	@echo "$(BLUE)Building macOS installer...$(NC)"
+package-mac: build ## Build macOS ARM64 installer (.dmg) for Apple Silicon
+	@echo "$(BLUE)Building macOS ARM64 installer for Apple Silicon...$(NC)"
 	@cd electron-app && npm run build:mac
-	@echo "$(GREEN)✓ macOS build complete: electron-app/dist/*.dmg$(NC)"
+	@echo "$(GREEN)✓ macOS ARM64 build complete: electron-app/dist/*-arm64.dmg$(NC)"
 
 package-win: build ## Build Windows installer (.exe)
 	@echo "$(BLUE)Building Windows installer...$(NC)"

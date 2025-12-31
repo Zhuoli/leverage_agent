@@ -224,16 +224,46 @@ make confluence-search QUERY="API documentation"
 ### Building Installers
 
 ```bash
-# Build for current platform
-make package
-
-# Build for specific platforms
-make package-mac     # macOS .dmg
-make package-win     # Windows .exe
-make package-linux   # Linux .AppImage and .deb
+# Build macOS ARM64 .dmg installer (Apple Silicon M1/M2/M3/M4)
+make package-mac
 ```
 
 **Output:** Installers in `electron-app/dist/`
+- DMG file: `Atlassian AI Assistant-3.0.0-arm64.dmg`
+- ZIP file: `Atlassian AI Assistant-3.0.0-arm64-mac.zip`
+
+### Automated Builds & Distribution with GitHub Actions
+
+This repository includes **GitHub Actions workflows** for automated building and releasing:
+
+- **Automatic builds** on every push to `main` branch
+- **macOS Apple Silicon (ARM64)** optimized builds
+- **Create releases** by pushing version tags (e.g., `git tag v3.0.0 && git push origin v3.0.0`)
+- **GitHub Releases** with DMG installers automatically uploaded
+
+**Quick release workflow:**
+```bash
+# 1. Update version in package.json files
+# 2. Commit and push
+git add package.json electron-app/package.json
+git commit -m "Bump version to 3.0.0"
+git push
+
+# 3. Create and push version tag
+git tag v3.0.0
+git push origin v3.0.0
+
+# 4. GitHub Actions automatically builds ARM64 installer and creates release!
+```
+
+**Opening the downloaded app on macOS:**
+
+If you get a security warning when opening the downloaded app, run:
+```bash
+xattr -c "/Applications/Atlassian AI Assistant.app"
+```
+
+Or right-click the app → "Open" → Click "Open" in the dialog.
 
 ---
 

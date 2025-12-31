@@ -1,0 +1,53 @@
+name: Build Mac Application
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-mac:
+    name: Build macOS ARM64 Application
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install Electron app dependencies
+        run: cd electron-app && npm ci
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Build macOS ARM64 app
+        run: cd electron-app && npm run build:mac
+        env:
+          # GitHub token for publishing releases (if needed)
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload macOS ARM64 artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-arm64-build
+          path: |
+            electron-app/dist/*.dmg
+            electron-app/dist/*.zip
+          retention-days: 7
+
+      - name: List build outputs
+        run: ls -lh electron-app/dist/

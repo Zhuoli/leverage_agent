@@ -1,0 +1,114 @@
+name: Release Mac Application
+
+on:
+  push:
+    tags:
+      - 'v*.*.*' # Triggers on version tags like v3.0.0, v3.1.0, etc.
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v3.0.0)'
+        required: true
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      version: ${{ steps.get_version.outputs.version }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.get_version.outputs.version }}
+          release_name: Atlassian AI Assistant ${{ steps.get_version.outputs.version }}
+          body: |
+            ## Atlassian AI Assistant ${{ steps.get_version.outputs.version }}
+
+            ### 🍎 macOS Apple Silicon (ARM64) Build
+
+            **Download:** `Atlassian-AI-Assistant-${{ steps.get_version.outputs.version }}-mac-arm64.dmg`
+
+            ### Installation
+            1. Download the DMG file below
+            2. Open the DMG file
+            3. Drag the app to your Applications folder
+            4. Open from Applications (first time: Right-click → Open to bypass Gatekeeper)
+
+            ### Requirements
+            - macOS with Apple Silicon (M1, M2, M3, M4 chips)
+            - macOS 11.0 (Big Sur) or later recommended
+
+            ### What's Changed
+            See the [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
+          draft: false
+          prerelease: false
+
+  build-and-upload-mac:
+    name: Build and Upload macOS ARM64
+    needs: create-release
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install Electron app dependencies
+        run: cd electron-app && npm ci
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Build macOS ARM64 app
+        run: cd electron-app && npm run build:mac
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: List build outputs
+        run: ls -lh electron-app/dist/
+
+      - name: Upload DMG and ZIP to Release
+        run: |
+          # Upload all DMG files
+          for file in electron-app/dist/*.dmg; do
+            if [ -f "$file" ]; then
+              echo "Uploading: $(basename "$file")"
+              gh release upload ${{ needs.create-release.outputs.version }} "$file" --clobber
+            fi
+          done
+
+          # Upload all ZIP files
+          for file in electron-app/dist/*.zip; do
+            if [ -f "$file" ]; then
+              echo "Uploading: $(basename "$file")"
+              gh release upload ${{ needs.create-release.outputs.version }} "$file" --clobber
+            fi
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
