@@ -4,10 +4,28 @@
 
 import { Command } from 'commander';
 import chalk from 'chalk';
-import ora from 'ora';
 import { getConfig } from '../config/index.js';
 import { AtlassianAgentSDK } from '../agent/index.js';
 import { startInteractiveChat } from './interactive.js';
+
+// Detect if we're in interactive terminal mode
+const isInteractive = process.stdout.isTTY;
+
+// Spinner helper - only loads ora in interactive mode
+async function createSpinner(text: string) {
+  if (isInteractive) {
+    const ora = (await import('ora')).default;
+    return ora(text).start();
+  }
+  // Non-interactive mode: just log to console
+  console.log(text);
+  return {
+    text: '',
+    succeed: (msg?: string) => msg && console.log(msg),
+    fail: (msg?: string) => msg && console.error(msg),
+    stop: () => {},
+  };
+}
 
 const program = new Command();
 
@@ -22,7 +40,7 @@ program
   .description('Start interactive chat session or send a single message')
   .option('-m, --message <message>', 'Send a single message')
   .action(async (options) => {
-    const spinner = ora('Initializing agent...').start();
+    const spinner = await createSpinner('Initializing agent...');
 
     try {
       const config = getConfig();
@@ -55,7 +73,7 @@ program
   .description('Get your Jira sprint tasks')
   .option('--all-issues', 'Get all issues (not just sprints)')
   .action(async (options) => {
-    const spinner = ora('Fetching Jira tasks...').start();
+    const spinner = await createSpinner('Fetching Jira tasks...');
 
     try {
       const config = getConfig();
@@ -87,7 +105,7 @@ program
   .argument('<query>', 'Search query')
   .option('-s, --space <key>', 'Search in specific space')
   .action(async (query, options) => {
-    const spinner = ora('Searching Confluence...').start();
+    const spinner = await createSpinner('Searching Confluence...');
 
     try {
       const config = getConfig();

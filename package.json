@@ -57,10 +57,12 @@
     "oci-common": "^2.122.2",
     "oci-generativeaiinference": "^2.122.2",
     "openai": "^4.68.0",
-    "ora": "^7.0.0",
     "pino": "^8.21.0",
     "pino-pretty": "^10.2.0",
     "zod": "^3.23.8"
+  },
+  "optionalDependencies": {
+    "ora": "^7.0.0"
   },
   "devDependencies": {
     "@types/inquirer": "^9.0.7",
