@@ -53,13 +53,20 @@ export class ClaudeProvider extends BaseProvider {
       let continueLoop = true;
       const maxIterations = 10; // Prevent infinite loops
       let iteration = 0;
+      let consecutiveErrors = 0;
+      const maxConsecutiveErrors = 3; // Stop if too many tools fail in a row
 
       while (continueLoop && iteration < maxIterations) {
         iteration++;
 
+        // Stop if too many consecutive errors
+        if (consecutiveErrors >= maxConsecutiveErrors) {
+          throw new Error(`Stopped after ${consecutiveErrors} consecutive tool errors`);
+        }
+
         const requestParams: Anthropic.MessageCreateParams = {
           model: this.model,
-          max_tokens: options?.maxTokens || 4096,
+          max_tokens: options?.maxTokens || 2048, // Reduced to leave room for tool results
           temperature: options?.temperature,
           system: this.systemPrompt,
           messages: conversationMessages,
@@ -89,6 +96,7 @@ export class ClaudeProvider extends BaseProvider {
 
           // Execute tools and collect results
           const toolResults: Anthropic.ToolResultBlockParam[] = [];
+          let allToolsFailed = true;
 
           for (const toolBlock of toolUseBlocks) {
             if (toolBlock.type === 'tool_use') {
@@ -101,6 +109,7 @@ export class ClaudeProvider extends BaseProvider {
                   tool_use_id: toolBlock.id,
                   content: typeof result === 'string' ? result : JSON.stringify(result),
                 });
+                allToolsFailed = false; // At least one tool succeeded
               } catch (error) {
                 console.error(`Tool ${toolBlock.name} failed:`, error);
                 toolResults.push({
@@ -111,6 +120,13 @@ export class ClaudeProvider extends BaseProvider {
                 });
               }
             }
+          }
+
+          // Update consecutive errors counter
+          if (allToolsFailed) {
+            consecutiveErrors++;
+          } else {
+            consecutiveErrors = 0; // Reset on success
           }
 
           // Add tool results to conversation

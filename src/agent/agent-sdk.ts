@@ -74,9 +74,11 @@ export class AtlassianAgentSDK {
       }
 
       // Start MCP server (optional)
-      if (this.options.enableMCP !== false) {
-        await this.startMCPServer();
-      }
+      // NOTE: MCP server startup is currently disabled as tools are integrated directly
+      // TODO: Implement individual MCP server startup (atlassian-server, oci-server) based on config
+      // if (this.options.enableMCP !== false) {
+      //   await this.startMCPServer();
+      // }
 
       // Build system prompt with Skills context
       const systemPrompt = this.buildSystemPrompt();

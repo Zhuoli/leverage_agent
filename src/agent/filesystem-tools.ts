@@ -25,7 +25,10 @@ export class FilesystemTools {
     return this.allowedDirs.some(allowedDir => {
       const rel = relative(allowedDir, normalized);
       // Check if path is within allowed dir (relative path doesn't start with '..')
-      return rel && !rel.startsWith('..') && !join.isAbsolute(rel);
+      // Empty string means same directory (allowed)
+      // 'src/file.ts' means within directory (allowed)
+      // '../outside' means outside directory (denied)
+      return !rel.startsWith('..');
     });
   }
 
