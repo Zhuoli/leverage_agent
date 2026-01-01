@@ -283,10 +283,11 @@ ipcMain.on('test-connection', async (event, settings) => {
         env.CONFLUENCE_USERNAME = 'test@example.com';
         env.CONFLUENCE_API_TOKEN = 'test-token';
 
-        // Test with a simple message
+        // Test with a simple message (disable MCP and Skills for faster testing)
         const args = [
             cliPath,
             'chat',
+            '--test-only',
             '--message',
             'Hello, this is a connection test.'
         ];

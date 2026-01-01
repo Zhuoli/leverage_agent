@@ -39,12 +39,20 @@ program
   .command('chat')
   .description('Start interactive chat session or send a single message')
   .option('-m, --message <message>', 'Send a single message')
+  .option('--test-only', 'Test connection only (disable MCP and Skills)')
   .action(async (options) => {
     const spinner = await createSpinner('Initializing agent...');
 
     try {
       const config = getConfig();
-      const agent = new AtlassianAgentSDK(config);
+
+      // Agent options - disable MCP and Skills for test-only mode
+      const agentOptions = options.testOnly ? {
+        enableMCP: false,
+        enableSkills: false,
+      } : {};
+
+      const agent = new AtlassianAgentSDK(config, agentOptions);
 
       await agent.initialize();
       spinner.succeed('Agent initialized');
