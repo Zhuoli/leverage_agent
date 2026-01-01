@@ -1,5 +1,5 @@
 # Atlassian AI Assistant - Makefile
-# All commands for building, packaging, and running the Electron desktop app
+# Commands for building, testing, and running the application
 
 .PHONY: help
 .DEFAULT_GOAL := help
@@ -34,8 +34,8 @@ setup: check-deps setup-root setup-electron ## Setup everything (root + Electron
 	@echo "Next steps:"
 	@echo "  1. Configure: make config"
 	@echo "  2. Build:     make build"
-	@echo "  3. Run:       make app"
-	@echo "  4. Package:   make package"
+	@echo "  3. Test:      make test-auth"
+	@echo "  4. Run:       make app"
 
 setup-root: check-deps ## Install root TypeScript dependencies
 	@echo "$(BLUE)Installing root dependencies...$(NC)"
@@ -50,15 +50,17 @@ setup-electron: check-deps ## Install Electron app dependencies
 config: ## Configure credentials (creates .env files)
 	@if [ ! -f .env ]; then \
 		cp .env.example .env; \
-		echo "$(YELLOW)Created .env for root$(NC)"; \
-		echo "$(YELLOW)Please edit .env with your credentials$(NC)"; \
+		echo "$(YELLOW)Created .env from template$(NC)"; \
+		echo "$(YELLOW)⚠️  Please edit .env with your credentials:$(NC)"; \
+		echo "  - Atlassian (Jira/Confluence) API tokens"; \
+		echo "  - OCI credentials (if using Oracle Cloud MCP)"; \
+		echo "  - AI provider API keys (Claude/OpenAI)"; \
 	else \
 		echo "$(GREEN).env already exists$(NC)"; \
 	fi
 	@if [ ! -f electron-app/.env ]; then \
 		cp electron-app/.env.example electron-app/.env; \
-		echo "$(YELLOW)Created .env for Electron app$(NC)"; \
-		echo "$(YELLOW)Please edit electron-app/.env with your credentials$(NC)"; \
+		echo "$(YELLOW)Created electron-app/.env from template$(NC)"; \
 	else \
 		echo "$(GREEN)electron-app/.env already exists$(NC)"; \
 	fi
@@ -93,35 +95,47 @@ format: ## Format code with Prettier
 	@echo "$(BLUE)Formatting code...$(NC)"
 	@npm run format
 
-##@ Run Commands
+##@ Run Application
 
 app: build ## Launch the Electron desktop app
 	@echo "$(BLUE)Launching Atlassian AI Assistant...$(NC)"
 	@cd electron-app && npm start
 
 app-dev: build ## Launch the Electron app with DevTools
-	@echo "$(BLUE)Launching in development mode...$(NC)"
+	@echo "$(BLUE)Launching in development mode with DevTools...$(NC)"
 	@cd electron-app && npm run dev
 
-chat: build ## Start interactive chat session (CLI)
-	@echo "$(BLUE)Starting interactive chat...$(NC)"
-	@node dist/cli/index.js chat
+##@ MCP Server Testing
 
-chat-message: build ## Send a single message (usage: make chat-message MSG="your message")
-	@echo "$(BLUE)Sending message to agent...$(NC)"
-	@node dist/cli/index.js chat --message "$(MSG)"
+test-auth: build ## Test authentication for all services (Atlassian + OCI)
+	@echo "$(BLUE)Testing authentication for all services...$(NC)"
+	@node scripts/test-auth.js all
 
-jira: build ## Get your Jira sprint tasks (CLI)
-	@echo "$(BLUE)Fetching Jira sprint tasks...$(NC)"
-	@node dist/cli/index.js jira
+test-auth-atlassian: build ## Test Atlassian (Jira/Confluence) authentication
+	@echo "$(BLUE)Testing Atlassian authentication...$(NC)"
+	@node scripts/test-auth.js atlassian
 
-jira-all: build ## Get all your Jira issues (CLI)
-	@echo "$(BLUE)Fetching all Jira issues...$(NC)"
-	@node dist/cli/index.js jira --all-issues
+test-auth-oci: build ## Test Oracle Cloud Infrastructure authentication
+	@echo "$(BLUE)Testing OCI authentication...$(NC)"
+	@node scripts/test-auth.js oci
 
-confluence-search: build ## Search Confluence (usage: make confluence-search QUERY="your search")
-	@echo "$(BLUE)Searching Confluence...$(NC)"
-	@node dist/cli/index.js confluence "$(QUERY)"
+test-mcp-atlassian: build ## Test Atlassian MCP server via JSON-RPC
+	@echo "$(BLUE)Testing Atlassian MCP server...$(NC)"
+	@node scripts/test-mcp.js atlassian
+
+test-mcp-oci: build ## Test Oracle Cloud MCP server via JSON-RPC
+	@echo "$(BLUE)Testing Oracle Cloud MCP server...$(NC)"
+	@node scripts/test-mcp.js oci
+
+inspector-atlassian: build ## Launch MCP Inspector for Atlassian MCP (opens browser)
+	@echo "$(BLUE)Launching MCP Inspector for Atlassian MCP...$(NC)"
+	@echo "$(YELLOW)Opening in browser: http://localhost:5173$(NC)"
+	@npx @modelcontextprotocol/inspector node dist/mcp/atlassian-server.js
+
+inspector-oci: build ## Launch MCP Inspector for Oracle Cloud MCP (opens browser)
+	@echo "$(BLUE)Launching MCP Inspector for Oracle Cloud MCP...$(NC)"
+	@echo "$(YELLOW)Opening in browser: http://localhost:5173$(NC)"
+	@npx @modelcontextprotocol/inspector node dist/mcp/oci-server.js
 
 ##@ Package Commands (Build Installers)
 
@@ -146,7 +160,7 @@ package-linux: build ## Build Linux installers (.AppImage, .deb)
 	@cd electron-app && npm run build:linux
 	@echo "$(GREEN)✓ Linux builds complete: electron-app/dist/$(NC)"
 
-package-all: build ## Build installers for all platforms
+package-all: build ## Build installers for all platforms (Mac/Win/Linux)
 	@echo "$(BLUE)Building installers for all platforms...$(NC)"
 	@cd electron-app && npm run build:mac && npm run build:win && npm run build:linux
 	@echo "$(GREEN)✓ All builds complete!$(NC)"
@@ -154,21 +168,17 @@ package-all: build ## Build installers for all platforms
 
 ##@ Testing & Validation
 
-test: ## Run tests
-	@echo "$(BLUE)Running tests...$(NC)"
+test: ## Run unit tests
+	@echo "$(BLUE)Running unit tests...$(NC)"
 	@npm test
 
-test-watch: ## Run tests in watch mode
+test-watch: ## Run unit tests in watch mode
 	@echo "$(BLUE)Running tests in watch mode...$(NC)"
 	@npm run test:watch
 
-test-coverage: ## Run tests with coverage
+test-coverage: ## Run tests with coverage report
 	@echo "$(BLUE)Running tests with coverage...$(NC)"
 	@npm run test:coverage
-
-test-config: ## Test configuration validity
-	@echo "$(BLUE)Testing configuration...$(NC)"
-	@node -e "require('./dist/cli/index.js')" && echo "$(GREEN)✓ Configuration valid$(NC)" || echo "$(RED)✗ Configuration invalid$(NC)"
 
 ##@ Maintenance
 
@@ -187,102 +197,118 @@ clean-all: clean ## Clean everything including dependencies
 	@rm -rf electron-app/node_modules
 	@echo "$(GREEN)✓ All cleaned - run 'make setup' to reinstall$(NC)"
 
-reset-config: ## Reset configuration files
-	@echo "$(YELLOW)Resetting configuration...$(NC)"
-	@rm -f .env electron-app/.env
-	@echo "$(GREEN)✓ Configuration reset - run 'make config' to recreate$(NC)"
+reset-config: ## Reset configuration files (delete .env files)
+	@echo "$(YELLOW)⚠️  Resetting configuration - this will delete .env files!$(NC)"
+	@read -p "Are you sure? [y/N] " -n 1 -r; \
+	echo; \
+	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
+		rm -f .env electron-app/.env; \
+		echo "$(GREEN)✓ Configuration reset - run 'make config' to recreate$(NC)"; \
+	else \
+		echo "$(YELLOW)Reset cancelled$(NC)"; \
+	fi
 
-##@ Information
+##@ Information & Status
 
-version: ## Show version information
+version: ## Show version and component information
 	@echo "$(BLUE)Atlassian AI Assistant v3.0.0$(NC)"
 	@echo ""
-	@echo "Runtime:           Node.js"
-	@echo "CLI:               ./dist/cli/index.js"
-	@echo "Atlassian MCP:     ./dist/mcp/atlassian-server.js"
-	@echo "Oracle Cloud MCP:  ./dist/mcp/oci-server.js"
-	@echo "Electron App:      ./electron-app/"
+	@echo "Components:"
+	@echo "  CLI:               ./dist/cli/index.js"
+	@echo "  Atlassian MCP:     ./dist/mcp/atlassian-server.js"
+	@echo "  Oracle Cloud MCP:  ./dist/mcp/oci-server.js"
+	@echo "  Electron App:      ./electron-app/"
 	@echo ""
-	@echo "Dependencies:"
+	@echo "Runtime:"
 	@node --version 2>/dev/null || echo "  Node.js: Not installed"
 	@npm --version 2>/dev/null || echo "  npm: Not installed"
 
-status: ## Show project status
+status: ## Show project status (build, config, dependencies)
 	@echo "$(BLUE)Project Status:$(NC)"
 	@echo ""
-	@echo "TypeScript Build:"
+	@echo "Build Status:"
 	@test -d dist && echo "  $(GREEN)✓ dist/ exists (compiled)$(NC)" || echo "  $(RED)✗ dist/ not found (run 'make build')$(NC)"
 	@test -f dist/cli/index.js && echo "  $(GREEN)✓ CLI compiled$(NC)" || echo "  $(RED)✗ CLI not compiled$(NC)"
 	@test -f dist/mcp/atlassian-server.js && echo "  $(GREEN)✓ Atlassian MCP compiled$(NC)" || echo "  $(RED)✗ Atlassian MCP not compiled$(NC)"
 	@test -f dist/mcp/oci-server.js && echo "  $(GREEN)✓ Oracle Cloud MCP compiled$(NC)" || echo "  $(RED)✗ Oracle Cloud MCP not compiled$(NC)"
 	@echo ""
 	@echo "Configuration:"
-	@test -f .env && echo "  $(GREEN)✓ .env configured$(NC)" || echo "  $(YELLOW)○ .env not configured (run 'make config')$(NC)"
-	@test -f electron-app/.env && echo "  $(GREEN)✓ electron-app/.env configured$(NC)" || echo "  $(YELLOW)○ electron-app/.env not configured$(NC)"
+	@test -f .env && echo "  $(GREEN)✓ .env exists$(NC)" || echo "  $(YELLOW)○ .env missing (run 'make config')$(NC)"
+	@test -f electron-app/.env && echo "  $(GREEN)✓ electron-app/.env exists$(NC)" || echo "  $(YELLOW)○ electron-app/.env missing$(NC)"
 	@echo ""
 	@echo "Dependencies:"
-	@test -d node_modules && echo "  $(GREEN)✓ Root dependencies installed$(NC)" || echo "  $(RED)✗ Root dependencies not installed$(NC)"
-	@test -d electron-app/node_modules && echo "  $(GREEN)✓ Electron dependencies installed$(NC)" || echo "  $(RED)✗ Electron dependencies not installed$(NC)"
+	@test -d node_modules && echo "  $(GREEN)✓ Root dependencies installed$(NC)" || echo "  $(RED)✗ Root dependencies missing (run 'make setup-root')$(NC)"
+	@test -d electron-app/node_modules && echo "  $(GREEN)✓ Electron dependencies installed$(NC)" || echo "  $(RED)✗ Electron dependencies missing (run 'make setup-electron')$(NC)"
 	@echo ""
 	@echo "Skills:"
-	@test -d .claude/skills && echo "  $(GREEN)✓ Skills directory exists$(NC)" || echo "  $(RED)✗ Skills not found$(NC)"
+	@test -d .claude/skills && echo "  $(GREEN)✓ Skills directory exists ($$(ls -1 .claude/skills/ | wc -l | tr -d ' ') skills)$(NC)" || echo "  $(YELLOW)○ No skills directory$(NC)"
 	@echo ""
 	@echo "Installers:"
-	@test -d electron-app/dist && echo "  $(GREEN)✓ Builds exist in electron-app/dist/$(NC)" || echo "  $(YELLOW)○ No builds yet (run 'make package')$(NC)"
+	@test -d electron-app/dist && echo "  $(GREEN)✓ Builds exist in electron-app/dist/$(NC)" || echo "  $(YELLOW)○ No installers built (run 'make package')$(NC)"
 
-list-skills: ## List available Claude Skills
-	@echo "$(BLUE)Available Claude Skills:$(NC)"
-	@ls -1 .claude/skills/ | grep -v "\.md$$" || echo "  No skills found"
-
-tree: ## Show project structure
-	@echo "$(BLUE)Project Structure:$(NC)"
-	@tree -L 3 -I 'node_modules|__pycache__|*.pyc|.git' --dirsfirst || \
-		find . -type d \( -name node_modules -o -name __pycache__ -o -name .git \) -prune -o -print | head -50
-
-##@ Documentation
-
-docs: ## Show documentation files
-	@echo "$(BLUE)Documentation files:$(NC)"
-	@echo "  README.md                  - Main documentation"
-	@echo "  MAKEFILE_GUIDE.md          - Makefile documentation"
-	@echo "  CONFIGURATION_GUIDE.md     - Configuration details"
-	@echo "  TROUBLESHOOTING.md         - Common issues"
-
-show-config: ## Show current configuration (without sensitive data)
+show-config: ## Show current configuration (hides sensitive data)
 	@echo "$(BLUE)Current Configuration:$(NC)"
 	@if [ -f .env ]; then \
-		echo "\nRoot (.env):"; \
-		grep -v "TOKEN\|KEY\|PASSWORD" .env | grep "=" || echo "  (no non-sensitive vars)"; \
+		echo "\nRoot .env:"; \
+		grep -v "TOKEN\|KEY\|PASSWORD" .env | grep "=" || echo "  (all variables are sensitive)"; \
 	else \
-		echo "\n$(YELLOW)No .env file found$(NC)"; \
+		echo "\n$(YELLOW)No .env file found - run 'make config'$(NC)"; \
 	fi
 	@if [ -f electron-app/.env ]; then \
-		echo "\nElectron App (electron-app/.env):"; \
-		grep -v "TOKEN\|KEY\|PASSWORD" electron-app/.env | grep "=" || echo "  (no non-sensitive vars)"; \
+		echo "\nElectron .env:"; \
+		grep -v "TOKEN\|KEY\|PASSWORD" electron-app/.env | grep "=" || echo "  (all variables are sensitive)"; \
 	else \
 		echo "\n$(YELLOW)No electron-app/.env file found$(NC)"; \
 	fi
 
-##@ Quick Start Examples
+list-skills: ## List available Claude Skills
+	@echo "$(BLUE)Available Claude Skills:$(NC)"
+	@if [ -d .claude/skills ]; then \
+		for skill in .claude/skills/*/; do \
+			skillname=$$(basename "$$skill"); \
+			if [ -f "$$skill/SKILL.md" ]; then \
+				desc=$$(grep "^description:" "$$skill/SKILL.md" | head -1 | sed 's/description: *//'); \
+				echo "  $(GREEN)$$skillname$(NC) - $$desc"; \
+			else \
+				echo "  $(GREEN)$$skillname$(NC)"; \
+			fi; \
+		done; \
+	else \
+		echo "  $(YELLOW)No skills directory found$(NC)"; \
+	fi
 
-quick-start: setup config build ## Complete quick start setup and build
-	@echo ""
-	@echo "$(GREEN)✓ Setup complete!$(NC)"
-	@echo ""
-	@echo "$(BLUE)Try these commands:$(NC)"
-	@echo "  $(GREEN)make app$(NC)                                   - Launch desktop app"
-	@echo "  $(GREEN)make chat$(NC)                                  - Interactive chat (CLI)"
-	@echo "  $(GREEN)make jira$(NC)                                  - Get your Jira tasks"
-	@echo "  $(GREEN)make package-mac$(NC)                           - Build macOS installer"
-	@echo "  $(GREEN)make package-win$(NC)                           - Build Windows installer"
-	@echo "  $(GREEN)make package-linux$(NC)                         - Build Linux installer"
-	@echo ""
+tree: ## Show project structure
+	@echo "$(BLUE)Project Structure:$(NC)"
+	@tree -L 3 -I 'node_modules|dist|__pycache__|*.pyc|.git' --dirsfirst 2>/dev/null || \
+		find . -type d \( -name node_modules -o -name dist -o -name __pycache__ -o -name .git \) -prune -o -print | head -50
 
-demo: build ## Quick demo of the application
-	@echo "$(BLUE)Atlassian AI Assistant Demo$(NC)"
-	@echo "\n$(GREEN)1. CLI Chat Demo:$(NC)"
-	@echo "   Run: make chat"
-	@echo "\n$(GREEN)2. Desktop App Demo:$(NC)"
-	@echo "   Run: make app"
-	@echo "\n$(GREEN)3. Build Installer Demo:$(NC)"
-	@echo "   Run: make package"
+##@ Documentation
+
+docs: ## List available documentation
+	@echo "$(BLUE)Documentation:$(NC)"
+	@echo "  $(GREEN)README.md$(NC)                      - Main documentation"
+	@echo "  $(GREEN)docs/TESTING_MCP_SERVERS.md$(NC)    - MCP testing guide"
+	@echo "  $(GREEN).env.example$(NC)                   - Configuration template"
+	@echo ""
+	@echo "Online:"
+	@echo "  - Makefile Commands: make help"
+	@echo "  - Project Status:    make status"
+
+##@ Quick Start Workflows
+
+quick-start: setup config build test-auth ## Complete setup: install → config → build → test
+	@echo ""
+	@echo "$(GREEN)✓ Quick start complete!$(NC)"
+	@echo ""
+	@echo "$(BLUE)Next steps:$(NC)"
+	@echo "  $(GREEN)make app$(NC)                  - Launch desktop app"
+	@echo "  $(GREEN)make test-mcp-atlassian$(NC)   - Test Atlassian MCP server"
+	@echo "  $(GREEN)make inspector-atlassian$(NC)  - Interactive MCP testing"
+	@echo "  $(GREEN)make package$(NC)              - Build installer for this platform"
+
+verify: build test-auth ## Verify installation and credentials
+	@echo ""
+	@echo "$(GREEN)✓ Verification complete!$(NC)"
+	@echo ""
+	@echo "If authentication tests passed, you're ready to:"
+	@echo "  $(GREEN)make app$(NC)  - Launch the desktop application"

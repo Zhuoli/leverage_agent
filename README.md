@@ -10,15 +10,22 @@ make setup
 
 # 2. Configure credentials
 make config
-# Edit .env with your Jira/Confluence credentials
+# Edit .env with your Jira/Confluence/OCI credentials
 
 # 3. Build the application
 make build
 
-# 4. Run the desktop app
-make app
+# 4. Test authentication (verify credentials work)
+make test-auth
 
-# Or build installer for distribution
+# 5. Run the desktop app
+make app
+```
+
+**One-line setup:** `make quick-start` (does steps 1-4 automatically)
+
+**Build installers:**
+```bash
 make package-mac     # macOS .dmg
 make package-win     # Windows .exe
 make package-linux   # Linux .AppImage
@@ -369,22 +376,6 @@ Settings are automatically saved to:
 
 Settings persist across app restarts and updates!
 
-### Command Line Interface (Optional)
-
-```bash
-# Interactive chat
-make chat
-
-# Single message
-make chat-message MSG="Show me my sprint tasks"
-
-# Get Jira tasks
-make jira
-
-# Search Confluence
-make confluence-search QUERY="API documentation"
-```
-
 ### Building Installers
 
 ```bash
@@ -597,21 +588,52 @@ make clean
 
 ## Makefile Commands
 
+### Essential Commands
 ```bash
-make help              # Show all commands
-make setup             # Install all dependencies
-make build             # Build TypeScript
-make app               # Run Electron app
-make chat              # Interactive CLI chat
-make package           # Build installer for current platform
-make package-mac       # Build macOS .dmg
-make package-win       # Build Windows .exe
-make package-linux     # Build Linux .AppImage
-make clean             # Clean build artifacts
+make help              # Show all available commands
+make setup             # Install all dependencies (root + Electron)
+make config            # Create .env configuration files
+make build             # Build TypeScript to JavaScript
+make app               # Launch Electron desktop app
 make status            # Show project status
 ```
 
-See `make help` for the full list.
+### MCP Server Testing
+```bash
+make test-auth                # Test all authentication (Atlassian + OCI)
+make test-auth-atlassian      # Test Jira/Confluence authentication
+make test-auth-oci            # Test Oracle Cloud authentication
+make test-mcp-atlassian       # Test Atlassian MCP server via JSON-RPC
+make test-mcp-oci             # Test OCI MCP server via JSON-RPC
+make inspector-atlassian      # Launch MCP Inspector GUI (Atlassian)
+make inspector-oci            # Launch MCP Inspector GUI (OCI)
+```
+
+### Package & Distribution
+```bash
+make package           # Build installer for current platform
+make package-mac       # Build macOS ARM64 .dmg
+make package-win       # Build Windows .exe
+make package-linux     # Build Linux .AppImage/.deb
+make package-all       # Build for all platforms
+```
+
+### Development & Maintenance
+```bash
+make build-dev         # Build in watch mode
+make test              # Run unit tests
+make lint              # Lint TypeScript code
+make clean             # Clean build artifacts
+make clean-all         # Clean everything including node_modules
+```
+
+### Quick Workflows
+```bash
+make quick-start       # Complete setup: install → config → build → test
+make verify            # Verify installation and test credentials
+```
+
+See `make help` for the complete list with descriptions.
 
 ---
 
