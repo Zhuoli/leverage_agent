@@ -235,7 +235,9 @@ async function testOCIAuth() {
       const identityClient = new identity.IdentityClient({
         authenticationDetailsProvider: provider,
       });
-      identityClient.region = region;
+
+      // Set region using Region object
+      identityClient.region = common.Region.fromRegionId(region);
 
       log('⏳ Fetching compartment details...', 'yellow');
       const response = await identityClient.getCompartment({
@@ -271,7 +273,9 @@ async function testOCIAuth() {
       const identityClient = new identity.IdentityClient({
         authenticationDetailsProvider: provider,
       });
-      identityClient.region = region;
+
+      // Set region using Region object
+      identityClient.region = common.Region.fromRegionId(region);
 
       log('⏳ Fetching tenancy details...', 'yellow');
       const response = await identityClient.getTenancy({

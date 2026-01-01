@@ -77,7 +77,7 @@ export class OCIClient {
       this.computeClient = new core.ComputeClient({
         authenticationDetailsProvider: this.provider,
       });
-      this.computeClient.region = this.region;
+      this.computeClient.region = common.Region.fromRegionId(this.region);
     }
     return this.computeClient;
   }
@@ -90,7 +90,7 @@ export class OCIClient {
       this.identityClient = new identity.IdentityClient({
         authenticationDetailsProvider: this.provider,
       });
-      this.identityClient.region = this.region;
+      this.identityClient.region = common.Region.fromRegionId(this.region);
     }
     return this.identityClient;
   }
@@ -103,7 +103,7 @@ export class OCIClient {
       this.containerEngineClient = new containerengine.ContainerEngineClient({
         authenticationDetailsProvider: this.provider,
       });
-      this.containerEngineClient.region = this.region;
+      this.containerEngineClient.region = common.Region.fromRegionId(this.region);
     }
     return this.containerEngineClient;
   }
@@ -116,7 +116,7 @@ export class OCIClient {
       this.bastionClient = new bastion.BastionClient({
         authenticationDetailsProvider: this.provider,
       });
-      this.bastionClient.region = this.region;
+      this.bastionClient.region = common.Region.fromRegionId(this.region);
     }
     return this.bastionClient;
   }
