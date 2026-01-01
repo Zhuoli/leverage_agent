@@ -56,19 +56,39 @@ async function testAtlassianAuth() {
 
   // Check configuration
   log('📋 Configuration Check:', 'cyan');
-  if (!jiraUrl || !jiraUsername || !jiraToken) {
-    log('❌ Jira credentials missing in .env file', 'red');
-    log('   Required: JIRA_URL, JIRA_USERNAME, JIRA_API_TOKEN', 'yellow');
+
+  const envPath = join(projectRoot, '.env');
+  const hasMissingCreds = !jiraUrl || !jiraUsername || !jiraToken || !confluenceUrl || !confluenceUsername || !confluenceToken;
+
+  if (hasMissingCreds) {
+    log('❌ Atlassian credentials missing', 'red');
+    log('', 'reset');
+    log('📝 Setup Instructions:', 'yellow');
+    log('', 'reset');
+    log(`1. Create/edit the .env file at: ${envPath}`, 'cyan');
+    log('', 'reset');
+    log('2. Add the following variables:', 'cyan');
+    log('', 'reset');
+    log('   JIRA_URL=https://jira.yourcompany.com', 'reset');
+    log('   JIRA_USERNAME=your.email@company.com', 'reset');
+    log('   JIRA_API_TOKEN=your_jira_api_token_here', 'reset');
+    log('', 'reset');
+    log('   CONFLUENCE_URL=https://confluence.yourcompany.com', 'reset');
+    log('   CONFLUENCE_USERNAME=your.email@company.com', 'reset');
+    log('   CONFLUENCE_API_TOKEN=your_confluence_api_token_here', 'reset');
+    log('', 'reset');
+    log('3. Get API tokens:', 'cyan');
+    log('', 'reset');
+    log('   Cloud: https://id.atlassian.com/manage-profile/security/api-tokens', 'blue');
+    log('   Self-hosted: Profile → Personal Access Tokens', 'blue');
+    log('', 'reset');
+    log('💡 Tip: You can copy .env.example as a starting point:', 'yellow');
+    log(`   cp .env.example .env`, 'cyan');
+    log('', 'reset');
   } else {
     log(`✅ Jira URL: ${jiraUrl}`, 'green');
     log(`✅ Jira Username: ${jiraUsername}`, 'green');
     log(`✅ Jira Token: ${jiraToken.substring(0, 10)}...`, 'green');
-  }
-
-  if (!confluenceUrl || !confluenceUsername || !confluenceToken) {
-    log('❌ Confluence credentials missing in .env file', 'red');
-    log('   Required: CONFLUENCE_URL, CONFLUENCE_USERNAME, CONFLUENCE_API_TOKEN', 'yellow');
-  } else {
     log(`✅ Confluence URL: ${confluenceUrl}`, 'green');
     log(`✅ Confluence Username: ${confluenceUsername}`, 'green');
     log(`✅ Confluence Token: ${confluenceToken.substring(0, 10)}...`, 'green');
@@ -165,9 +185,39 @@ async function testOCIAuth() {
 
     // Check configuration
     log('📋 Configuration Check:', 'cyan');
-    if (!region || !compartmentId || !tenancyId) {
-      log('❌ OCI credentials missing in .env file', 'red');
-      log('   Required: OCI_MCP_REGION, OCI_MCP_COMPARTMENT_ID, OCI_MCP_TENANCY_ID', 'yellow');
+
+    const envPath = join(projectRoot, '.env');
+    const hasMissingOciCreds = !region || !compartmentId || !tenancyId;
+
+    if (hasMissingOciCreds) {
+      log('❌ OCI credentials missing', 'red');
+      log('', 'reset');
+      log('📝 Setup Instructions:', 'yellow');
+      log('', 'reset');
+      log(`1. Create/edit the .env file at: ${envPath}`, 'cyan');
+      log('', 'reset');
+      log('2. Add the following variables:', 'cyan');
+      log('', 'reset');
+      log('   OCI_MCP_REGION=us-phoenix-1', 'reset');
+      log('   OCI_MCP_COMPARTMENT_ID=ocid1.compartment.oc1..xxx', 'reset');
+      log('   OCI_MCP_TENANCY_ID=ocid1.tenancy.oc1..xxx', 'reset');
+      log('   OCI_MCP_CONFIG_PATH=~/.oci/config (optional)', 'reset');
+      log('   OCI_MCP_PROFILE=DEFAULT (optional)', 'reset');
+      log('', 'reset');
+      log('3. Find your OCI IDs using OCI CLI:', 'cyan');
+      log('', 'reset');
+      log('   # List compartments', 'reset');
+      log('   oci iam compartment list --all', 'blue');
+      log('', 'reset');
+      log('   # Get tenancy ID', 'reset');
+      log('   oci iam tenancy get --tenancy-id <your-tenancy-id>', 'blue');
+      log('', 'reset');
+      log('4. Create a session token (REQUIRED):', 'cyan');
+      log('', 'reset');
+      log('   oci session authenticate --profile-name DEFAULT --region us-phoenix-1', 'blue');
+      log('', 'reset');
+      log('💡 Tip: Session tokens expire. Refresh them regularly!', 'yellow');
+      log('', 'reset');
       return;
     }
 
