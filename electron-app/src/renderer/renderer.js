@@ -726,6 +726,10 @@ function testConnection() {
     ipcRenderer.once('connection-test-result', (event, result) => {
         if (result.success) {
             resultDiv.innerHTML = '<span style="color: #1a7f37;">✅ Connection successful!</span>';
+            // Update the main status indicator
+            statusIndicator.classList.remove('error');
+            statusIndicator.classList.add('connected');
+            statusText.textContent = 'AI Provider connected';
         } else {
             resultDiv.innerHTML = `<span style="color: #cf222e;">❌ Connection failed: ${result.error}</span>`;
         }
