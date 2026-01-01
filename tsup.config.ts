@@ -3,7 +3,7 @@ import { defineConfig } from 'tsup';
 export default defineConfig({
   entry: {
     'cli/index': 'src/cli/index.ts',
-    'mcp/server': 'src/mcp/server.ts',
+    'mcp/atlassian-server': 'src/mcp/atlassian-server.ts',
     'mcp/oci-server': 'src/mcp/oci-server.ts',
   },
   format: ['esm'],

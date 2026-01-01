@@ -2,7 +2,7 @@ import type { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { ConfluenceClient } from '../../api/confluence-client.js';
 import type { Config } from '../../config/index.js';
-import { CONFLUENCE_TOOLS } from '../types.js';
+import { CONFLUENCE_TOOLS } from '../atlassian-types.js';
 
 /**
  * Register all Confluence MCP tools with the server

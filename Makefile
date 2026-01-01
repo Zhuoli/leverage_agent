@@ -69,8 +69,9 @@ build: ## Build TypeScript to JavaScript
 	@echo "$(BLUE)Building TypeScript...$(NC)"
 	@npm run build
 	@echo "$(GREEN)✓ TypeScript compiled successfully$(NC)"
-	@echo "  CLI:        dist/cli/index.js"
-	@echo "  MCP Server: dist/mcp/server.js"
+	@echo "  CLI:               dist/cli/index.js"
+	@echo "  Atlassian MCP:     dist/mcp/atlassian-server.js"
+	@echo "  Oracle Cloud MCP:  dist/mcp/oci-server.js"
 
 build-dev: ## Build in development mode (watch)
 	@echo "$(BLUE)Building TypeScript in watch mode...$(NC)"
@@ -198,7 +199,8 @@ version: ## Show version information
 	@echo ""
 	@echo "Runtime:           Node.js"
 	@echo "CLI:               ./dist/cli/index.js"
-	@echo "MCP Server:        ./dist/mcp/server.js"
+	@echo "Atlassian MCP:     ./dist/mcp/atlassian-server.js"
+	@echo "Oracle Cloud MCP:  ./dist/mcp/oci-server.js"
 	@echo "Electron App:      ./electron-app/"
 	@echo ""
 	@echo "Dependencies:"
@@ -211,7 +213,8 @@ status: ## Show project status
 	@echo "TypeScript Build:"
 	@test -d dist && echo "  $(GREEN)✓ dist/ exists (compiled)$(NC)" || echo "  $(RED)✗ dist/ not found (run 'make build')$(NC)"
 	@test -f dist/cli/index.js && echo "  $(GREEN)✓ CLI compiled$(NC)" || echo "  $(RED)✗ CLI not compiled$(NC)"
-	@test -f dist/mcp/server.js && echo "  $(GREEN)✓ MCP server compiled$(NC)" || echo "  $(RED)✗ MCP server not compiled$(NC)"
+	@test -f dist/mcp/atlassian-server.js && echo "  $(GREEN)✓ Atlassian MCP compiled$(NC)" || echo "  $(RED)✗ Atlassian MCP not compiled$(NC)"
+	@test -f dist/mcp/oci-server.js && echo "  $(GREEN)✓ Oracle Cloud MCP compiled$(NC)" || echo "  $(RED)✗ Oracle Cloud MCP not compiled$(NC)"
 	@echo ""
 	@echo "Configuration:"
 	@test -f .env && echo "  $(GREEN)✓ .env configured$(NC)" || echo "  $(YELLOW)○ .env not configured (run 'make config')$(NC)"

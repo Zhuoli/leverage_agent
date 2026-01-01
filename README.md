@@ -473,18 +473,20 @@ confluence_assistant/
 │   ├── config/              # Configuration (Zod schemas)
 │   ├── api/                 # API clients (Jira/Confluence/OCI)
 │   ├── mcp/                 # MCP servers + tools
-│   │   ├── server.ts       # Atlassian MCP server
-│   │   ├── oci-server.ts   # Oracle Cloud MCP server
-│   │   └── tools/          # Tool implementations
+│   │   ├── atlassian-server.ts  # Atlassian MCP server
+│   │   ├── atlassian-types.ts   # Atlassian MCP tool definitions
+│   │   ├── oci-server.ts        # Oracle Cloud MCP server
+│   │   ├── oci-types.ts         # Oracle Cloud MCP tool definitions
+│   │   └── tools/               # Tool implementations
 │   ├── skills/              # Skills loader
 │   ├── providers/           # AI providers (Claude/OpenAI/OCI)
 │   ├── agent/               # Agent orchestrator
 │   └── cli/                 # CLI interface
 │
-├── dist/                     # Compiled JavaScript
-│   ├── cli/index.js         # CLI entry point
-│   ├── mcp/server.js        # Atlassian MCP server
-│   └── mcp/oci-server.js    # Oracle Cloud MCP server
+├── dist/                            # Compiled JavaScript
+│   ├── cli/index.js                # CLI entry point
+│   ├── mcp/atlassian-server.js     # Atlassian MCP server
+│   └── mcp/oci-server.js           # Oracle Cloud MCP server
 │
 ├── electron-app/             # Electron desktop application
 │   ├── src/                 # Electron source code
@@ -584,7 +586,8 @@ npm run build
 ### Permission denied errors
 ```bash
 chmod +x dist/cli/index.js
-chmod +x dist/mcp/server.js
+chmod +x dist/mcp/atlassian-server.js
+chmod +x dist/mcp/oci-server.js
 ```
 
 ---

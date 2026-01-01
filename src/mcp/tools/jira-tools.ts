@@ -2,7 +2,7 @@ import type { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { JiraClient } from '../../api/jira-client.js';
 import type { Config } from '../../config/index.js';
-import { JIRA_TOOLS } from '../types.js';
+import { JIRA_TOOLS } from '../atlassian-types.js';
 
 /**
  * Register all Jira MCP tools with the server
