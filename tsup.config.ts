@@ -13,6 +13,8 @@ export default defineConfig({
   clean: true,
   shims: true,
   target: 'node18',
+  // Don't bundle these packages - they'll be in node_modules
+  external: ['commander', 'chalk', 'ora'],
   banner: {
     js: '#!/usr/bin/env node',
   },
