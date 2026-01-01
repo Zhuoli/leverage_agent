@@ -8,6 +8,7 @@ import type { Message } from '../providers/types.js';
 import type { ConversationMessage, AgentOptions } from './types.js';
 import { FilesystemTools } from './filesystem-tools.js';
 import { SmartExploration } from './smart-exploration.js';
+import { MCPClientManager, type MCPServerConfig } from './mcp-client.js';
 import type { Tool } from '@anthropic-ai/sdk/resources/messages.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -23,6 +24,7 @@ export class AtlassianAgentSDK {
   private filesystemTools?: FilesystemTools;
   private smartExploration?: SmartExploration;
   private mcpProcess?: ChildProcess;
+  private mcpClientManager: MCPClientManager;
   private conversationHistory: ConversationMessage[] = [];
   private maxHistory: number;
   private initialized: boolean = false;
@@ -35,6 +37,7 @@ export class AtlassianAgentSDK {
     const skillsDir = join(projectRoot, '.claude', 'skills');
 
     this.skillsLoader = new SkillsLoader(skillsDir);
+    this.mcpClientManager = new MCPClientManager();
 
     // Initialize filesystem tools if code repo paths are configured
     const codeRepoPaths = this.getCodeRepoPaths();
@@ -76,12 +79,10 @@ export class AtlassianAgentSDK {
         console.error(`✓ Loaded ${this.skillsLoader.getCount()} skills`);
       }
 
-      // Start MCP server (optional)
-      // NOTE: MCP server startup is currently disabled as tools are integrated directly
-      // TODO: Implement individual MCP server startup (atlassian-server, oci-server) based on config
-      // if (this.options.enableMCP !== false) {
-      //   await this.startMCPServer();
-      // }
+      // Start MCP servers based on config
+      if (this.options.enableMCP !== false) {
+        await this.startMCPServers();
+      }
 
       // Build system prompt with Skills context
       const systemPrompt = this.buildSystemPrompt();
@@ -90,13 +91,28 @@ export class AtlassianAgentSDK {
       console.error(`Initializing ${this.config.modelProvider} provider...`);
       this.provider = createProvider(this.config, systemPrompt);
 
-      // Register filesystem tools if available (Claude provider only for now)
-      if (this.filesystemTools && this.filesystemTools.isAvailable()) {
-        if ('registerTools' in this.provider) {
-          const tools = this.createFilesystemTools();
+      // Register tools if available (Claude provider only for now)
+      if ('registerTools' in this.provider) {
+        const allTools: Tool[] = [];
+
+        // Add filesystem tools if available
+        if (this.filesystemTools && this.filesystemTools.isAvailable()) {
+          allTools.push(...this.createFilesystemTools());
+          console.error('✓ Filesystem tools added');
+        }
+
+        // Add MCP tools from all connected servers
+        const mcpTools = this.getMCPTools();
+        if (mcpTools.length > 0) {
+          allTools.push(...mcpTools);
+          console.error(`✓ Added ${mcpTools.length} MCP tools from ${this.mcpClientManager.getServerCount()} servers`);
+        }
+
+        // Register all tools with a unified handler
+        if (allTools.length > 0) {
           const handler = this.createToolHandler();
-          (this.provider as any).registerTools(tools, handler);
-          console.error('✓ Filesystem tools registered');
+          (this.provider as any).registerTools(allTools, handler);
+          console.error(`✓ Registered ${allTools.length} total tools`);
         }
       }
 
@@ -229,91 +245,134 @@ export class AtlassianAgentSDK {
    */
   private createToolHandler(): (toolName: string, toolInput: any) => Promise<any> {
     return async (toolName: string, toolInput: any) => {
-      if (!this.filesystemTools) {
-        throw new Error('Filesystem tools not available');
+      // Handle filesystem tools
+      if (this.filesystemTools) {
+        switch (toolName) {
+          case 'read_file':
+            return await this.filesystemTools.readFile(toolInput.path);
+
+          case 'list_directory':
+            return await this.filesystemTools.listDirectory(toolInput.path);
+
+          case 'search_files':
+            return await this.filesystemTools.searchFiles(
+              toolInput.pattern,
+              toolInput.base_dir
+            );
+
+          case 'get_file_info':
+            return await this.filesystemTools.getFileInfo(toolInput.path);
+
+          case 'list_code_repositories':
+            return await this.filesystemTools.getAllowedDirectoriesSummary();
+
+          case 'get_project_overview':
+            if (!this.smartExploration) {
+              throw new Error('Smart exploration not available');
+            }
+            const context = await this.smartExploration.getProjectOverview(
+              toolInput.repo_path,
+              { maxAnchorFiles: toolInput.max_files }
+            );
+            return JSON.stringify(context, null, 2);
+
+          case 'find_relevant_files':
+            if (!this.smartExploration) {
+              throw new Error('Smart exploration not available');
+            }
+            // First get project overview as context
+            const overviewContext = await this.smartExploration.getProjectOverview(toolInput.repo_path);
+            const relevantFiles = await this.smartExploration.findRelevantFiles(
+              toolInput.query,
+              toolInput.repo_path,
+              overviewContext,
+              toolInput.max_results || 10
+            );
+            return JSON.stringify(relevantFiles, null, 2);
+        }
       }
 
-      switch (toolName) {
-        case 'read_file':
-          return await this.filesystemTools.readFile(toolInput.path);
-
-        case 'list_directory':
-          return await this.filesystemTools.listDirectory(toolInput.path);
-
-        case 'search_files':
-          return await this.filesystemTools.searchFiles(
-            toolInput.pattern,
-            toolInput.base_dir
-          );
-
-        case 'get_file_info':
-          return await this.filesystemTools.getFileInfo(toolInput.path);
-
-        case 'list_code_repositories':
-          return await this.filesystemTools.getAllowedDirectoriesSummary();
-
-        case 'get_project_overview':
-          if (!this.smartExploration) {
-            throw new Error('Smart exploration not available');
-          }
-          const context = await this.smartExploration.getProjectOverview(
-            toolInput.repo_path,
-            { maxAnchorFiles: toolInput.max_files }
-          );
-          return JSON.stringify(context, null, 2);
-
-        case 'find_relevant_files':
-          if (!this.smartExploration) {
-            throw new Error('Smart exploration not available');
-          }
-          // First get project overview as context
-          const overviewContext = await this.smartExploration.getProjectOverview(toolInput.repo_path);
-          const relevantFiles = await this.smartExploration.findRelevantFiles(
-            toolInput.query,
-            toolInput.repo_path,
-            overviewContext,
-            toolInput.max_results || 10
-          );
-          return JSON.stringify(relevantFiles, null, 2);
-
-        default:
-          throw new Error(`Unknown tool: ${toolName}`);
+      // If not a filesystem tool, try MCP tools
+      try {
+        return await this.mcpClientManager.callTool(toolName, toolInput);
+      } catch (error) {
+        throw new Error(`Unknown tool or tool error: ${toolName} - ${error}`);
       }
     };
   }
 
   /**
-   * Start the MCP server as a subprocess
+   * Start individual MCP servers based on config flags
    */
-  private async startMCPServer(): Promise<void> {
-    console.error('Starting MCP server...');
+  private async startMCPServers(): Promise<void> {
+    console.error('Starting MCP servers...');
 
-    try {
-      const projectRoot = resolve(__dirname, '..', '..');
-      const mcpServerPath = join(projectRoot, 'dist', 'mcp', 'server.js');
+    const projectRoot = resolve(__dirname, '..', '..');
+    const servers: MCPServerConfig[] = [];
 
-      // Spawn MCP server process
-      this.mcpProcess = spawn('node', [mcpServerPath], {
-        stdio: ['pipe', 'pipe', 'inherit'],
-        env: process.env,
+    // Configure Atlassian MCP server if enabled
+    if (this.config.atlassianMcpEnabled && this.config.jiraUrl && this.config.confluenceUrl) {
+      servers.push({
+        name: 'atlassian',
+        enabled: true,
+        serverPath: join(projectRoot, 'dist', 'mcp', 'atlassian-server.js'),
+        env: {
+          ATLASSIAN_MCP_ENABLED: 'true',
+          JIRA_URL: this.config.jiraUrl,
+          JIRA_USERNAME: this.config.jiraUsername || '',
+          JIRA_API_TOKEN: this.config.jiraApiToken || '',
+          CONFLUENCE_URL: this.config.confluenceUrl,
+          CONFLUENCE_USERNAME: this.config.confluenceUsername || '',
+          CONFLUENCE_API_TOKEN: this.config.confluenceApiToken || '',
+          CONFLUENCE_SPACE_KEY: this.config.confluenceSpaceKey || '',
+        },
       });
-
-      // Handle process errors
-      this.mcpProcess.on('error', (error) => {
-        console.error('MCP server process error:', error);
-      });
-
-      this.mcpProcess.on('exit', (code) => {
-        if (code !== 0 && code !== null) {
-          console.error(`MCP server exited with code ${code}`);
-        }
-      });
-
-      console.error('✓ MCP server started');
-    } catch (error) {
-      console.error('Failed to start MCP server:', error);
-      throw error;
     }
+
+    // Configure OCI MCP server if enabled
+    if (this.config.ociMcpEnabled && this.config.ociMcpRegion) {
+      servers.push({
+        name: 'oci',
+        enabled: true,
+        serverPath: join(projectRoot, 'dist', 'mcp', 'oci-server.js'),
+        env: {
+          OCI_MCP_ENABLED: 'true',
+          OCI_MCP_REGION: this.config.ociMcpRegion,
+          OCI_MCP_COMPARTMENT_ID: this.config.ociMcpCompartmentId || '',
+          OCI_MCP_TENANCY_ID: this.config.ociMcpTenancyId || '',
+          OCI_MCP_CONFIG_PATH: this.config.ociMcpConfigPath || '',
+          OCI_MCP_PROFILE: this.config.ociMcpProfile || 'DEFAULT',
+        },
+      });
+    }
+
+    // Start all configured servers
+    for (const serverConfig of servers) {
+      try {
+        await this.mcpClientManager.startServer(serverConfig);
+      } catch (error) {
+        console.error(`Warning: Failed to start ${serverConfig.name} MCP server:`, error);
+        // Continue with other servers even if one fails
+      }
+    }
+
+    if (servers.length === 0) {
+      console.error('No MCP servers configured to start');
+    } else {
+      console.error(`✓ Started ${this.mcpClientManager.getServerCount()}/${servers.length} MCP servers`);
+    }
+  }
+
+  /**
+   * Convert MCP tools to Claude Tool format
+   */
+  private getMCPTools(): Tool[] {
+    const mcpTools = this.mcpClientManager.getAllTools();
+    return mcpTools.map((mcpTool) => ({
+      name: mcpTool.name,
+      description: mcpTool.description,
+      input_schema: mcpTool.inputSchema,
+    }));
   }
 
   /**
@@ -548,8 +607,12 @@ When exploring a codebase, you MUST follow this systematic approach:
    * Cleanup resources
    */
   async cleanup(): Promise<void> {
+    // Shutdown all MCP servers
+    await this.mcpClientManager.shutdown();
+
+    // Legacy cleanup for old mcpProcess if it exists
     if (this.mcpProcess) {
-      console.error('Shutting down MCP server...');
+      console.error('Shutting down legacy MCP process...');
       this.mcpProcess.kill();
       this.mcpProcess = undefined;
     }
