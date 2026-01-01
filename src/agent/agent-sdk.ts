@@ -317,32 +317,85 @@ export class AtlassianAgentSDK {
   }
 
   /**
-   * Build system prompt with Skills context
+   * Build system prompt dynamically based on enabled MCPs and Skills
    */
   private buildSystemPrompt(): string {
-    let basePrompt = `You are an AI assistant helping users interact with their Jira and Confluence instances.
+    // Base introduction
+    let basePrompt = `You are an AI assistant that helps users with various tasks.`;
 
-You have access to MCP tools for Jira and Confluence operations.
+    const capabilities: string[] = [];
 
-**Your Capabilities:**
+    // Add Atlassian (Jira/Confluence) capabilities if MCP is enabled
+    if (this.config.atlassianMcpEnabled && this.config.jiraUrl && this.config.confluenceUrl) {
+      capabilities.push(`\n\n## 🎫 Jira Capabilities
 
-Jira:
-- Search tickets using JQL
-- Get sprint tasks
-- Create and update tickets
-- Add comments
-- Analyze priorities and blockers
+You have access to Jira MCP tools for:
+- **Search tickets**: Use JQL queries to find tickets
+- **Get sprint tasks**: View current sprint work
+- **Create tickets**: Create new Jira issues
+- **Update tickets**: Modify existing tickets (status, assignee, etc.)
+- **Add comments**: Comment on tickets
+- **Analyze priorities**: Identify blockers and high-priority items
 
-Confluence:
-- Search pages
-- Read page content
-- Create and update pages
-- Get recent updates`;
+**Available Jira Tools:**
+- \`search_jira_tickets\` - Search using JQL
+- \`get_sprint_tasks\` - Get current sprint
+- \`create_jira_ticket\` - Create new ticket
+- \`update_jira_ticket\` - Update ticket
+- \`add_jira_comment\` - Add comment
+
+**Jira Best Practices:**
+- Always format ticket keys as links (e.g., [PROJ-123])
+- Highlight priorities (High, Critical) and blockers
+- Suggest next actions based on ticket status`);
+
+      capabilities.push(`\n\n## 📚 Confluence Capabilities
+
+You have access to Confluence MCP tools for:
+- **Search pages**: Find documentation across spaces
+- **Read pages**: Get page content in HTML/storage format
+- **Create pages**: Create new documentation pages
+- **Update pages**: Modify existing pages
+- **Get recent updates**: Track recent changes
+- **Suggest structure**: Recommend documentation organization
+
+**Available Confluence Tools:**
+- \`search_confluence\` - Search pages by keywords
+- \`get_confluence_page\` - Read page content
+- \`create_confluence_page\` - Create new page
+- \`update_confluence_page\` - Update existing page
+
+**Confluence Best Practices:**
+- Format output with proper HTML structure
+- Link related pages and documents
+- Follow documentation standards from Skills`);
+    }
+
+    // Add OCI capabilities if MCP is enabled
+    if (this.config.ociMcpEnabled && this.config.ociMcpRegion) {
+      capabilities.push(`\n\n## ☁️ Oracle Cloud Infrastructure (OCI) Capabilities
+
+You have access to OCI MCP tools for:
+- **Resource Management**: List, create, and manage OCI resources
+- **Compute Instances**: Manage VM instances
+- **Storage**: Manage block and object storage
+- **Networking**: Configure VCNs, subnets, security lists
+- **Identity**: Manage users, groups, policies
+
+**OCI Configuration:**
+- Region: ${this.config.ociMcpRegion}
+- Compartment: ${this.config.ociMcpCompartmentId}
+
+**OCI Best Practices:**
+- Always verify compartment before creating resources
+- Follow naming conventions for resources
+- Check quotas before provisioning`);
+    }
 
     // Add code repository access information if available
     if (this.filesystemTools && this.filesystemTools.isAvailable()) {
       const repos = this.filesystemTools.getAllowedDirectories();
-      basePrompt += `\n\n**Code Repository Access:**
+      capabilities.push(`\n\n## 💻 Code Repository Access
 
 You have access to the following code repositories:
 ${repos.map(repo => `  - ${repo}`).join('\n')}
@@ -398,20 +451,40 @@ When exploring a codebase, you MUST follow this systematic approach:
 - package.json: JavaScript/TypeScript dependencies and scripts
 - Don't read test files unless specifically asked
 - Prioritize files mentioned in documentation
-- Keep total file reads under 20 per query`;
+- Keep total file reads under 20 per query`);
     }
 
-    basePrompt += `\n\n**Guidelines:**
-1. Be helpful and provide clear, actionable responses
-2. Format output with ticket keys and links
-3. Highlight priorities and blockers
-4. Suggest next actions based on context
-5. When analyzing code, read relevant files and provide specific insights`;
+    // Assemble the full prompt with all enabled capabilities
+    if (capabilities.length > 0) {
+      basePrompt += '\n\n# Your Capabilities\n';
+      basePrompt += capabilities.join('');
+    } else {
+      // No MCPs or filesystem tools enabled
+      basePrompt += `\n\nNote: No MCP servers or code repositories are currently configured. You can provide general assistance and reference Skills if available.`;
+    }
+
+    // Add general guidelines
+    const guidelines: string[] = ['Be helpful and provide clear, actionable responses'];
+
+    if (this.config.atlassianMcpEnabled) {
+      guidelines.push('Format output with ticket keys and links');
+      guidelines.push('Highlight priorities and blockers');
+    }
+
+    if (this.filesystemTools && this.filesystemTools.isAvailable()) {
+      guidelines.push('When analyzing code, read relevant files and provide specific insights');
+      guidelines.push('Always start code exploration with get_project_overview()');
+    }
+
+    guidelines.push('Suggest next actions based on context');
+    guidelines.push('Reference Skills for best practices and templates');
+
+    basePrompt += `\n\n# Guidelines\n\n${guidelines.map((g, i) => `${i + 1}. ${g}`).join('\n')}`;
 
     // Add Skills context if available
     if (this.skillsLoader.isLoaded() && this.skillsLoader.getCount() > 0) {
       const skillsContext = this.skillsLoader.getSkillsContext();
-      return basePrompt + '\n\n' + skillsContext;
+      basePrompt += '\n\n' + skillsContext;
     }
 
     return basePrompt;
