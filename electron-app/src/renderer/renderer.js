@@ -269,11 +269,16 @@ function onProviderChange() {
     const anthropicGroup = document.getElementById('anthropicKeyGroup');
     const openaiGroup = document.getElementById('openaiKeyGroup');
     const ociOpenAIGroup = document.getElementById('ociOpenAIGroup');
+    const modelNameInput = document.getElementById('modelName');
 
     if (provider === 'claude') {
         anthropicGroup.style.display = 'block';
         openaiGroup.style.display = 'none';
         ociOpenAIGroup.style.display = 'none';
+        // Set default Claude model if empty
+        if (!modelNameInput.value) {
+            modelNameInput.value = 'claude-sonnet-4-5';
+        }
     } else if (provider === 'openai') {
         anthropicGroup.style.display = 'none';
         openaiGroup.style.display = 'block';
@@ -592,8 +597,15 @@ function loadSettings() {
     ipcRenderer.once('settings-loaded', (event, settings) => {
         if (settings) {
             // Model provider settings
-            document.getElementById('modelProvider').value = settings.MODEL_PROVIDER || 'oci-openai';
-            document.getElementById('modelName').value = settings.MODEL_NAME || '';
+            const provider = settings.MODEL_PROVIDER || 'oci-openai';
+            document.getElementById('modelProvider').value = provider;
+
+            // Set default model name for Claude if empty
+            let modelName = settings.MODEL_NAME || '';
+            if (provider === 'claude' && !modelName) {
+                modelName = 'claude-sonnet-4-5';
+            }
+            document.getElementById('modelName').value = modelName;
             document.getElementById('anthropicKey').value = settings.ANTHROPIC_API_KEY || '';
             document.getElementById('openaiKey').value = settings.OPENAI_API_KEY || '';
 
