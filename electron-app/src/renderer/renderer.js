@@ -247,6 +247,11 @@ function backToMainSettings() {
 }
 
 function openAtlassianMcpSettings() {
+    const enabled = document.getElementById('atlassianMcpEnabled').checked;
+    if (!enabled) {
+        alert('Please enable Atlassian MCP first');
+        return;
+    }
     showSettingsView('atlassianMcpView');
 }
 
@@ -277,6 +282,15 @@ function onProviderChange() {
         anthropicGroup.style.display = 'none';
         openaiGroup.style.display = 'none';
         ociOpenAIGroup.style.display = 'block';
+    }
+}
+
+function onAtlassianMcpToggle() {
+    const enabled = document.getElementById('atlassianMcpEnabled').checked;
+    const configureBtn = document.getElementById('atlassianMcpConfigureBtn');
+
+    if (configureBtn) {
+        configureBtn.disabled = !enabled;
     }
 }
 
@@ -464,6 +478,9 @@ function loadSettings() {
             document.getElementById('ociConfigPath').value = settings.OCI_CONFIG_PATH || '';
             document.getElementById('ociProfile').value = settings.OCI_PROFILE || '';
 
+            // Atlassian MCP settings
+            document.getElementById('atlassianMcpEnabled').checked = settings.ATLASSIAN_MCP_ENABLED === 'true' || settings.ATLASSIAN_MCP_ENABLED === true;
+
             // OCI MCP settings
             document.getElementById('ociMcpEnabled').checked = settings.OCI_MCP_ENABLED === 'true' || settings.OCI_MCP_ENABLED === true;
             document.getElementById('ociMcpRegion').value = settings.OCI_MCP_REGION || '';
@@ -485,6 +502,7 @@ function loadSettings() {
 
             // Update UI based on provider
             onProviderChange();
+            onAtlassianMcpToggle();
             onOciMcpToggle();
         }
     });
@@ -503,6 +521,9 @@ function saveSettings() {
         OCI_ENDPOINT: document.getElementById('ociEndpoint').value,
         OCI_CONFIG_PATH: document.getElementById('ociConfigPath').value,
         OCI_PROFILE: document.getElementById('ociProfile').value,
+
+        // Atlassian MCP settings
+        ATLASSIAN_MCP_ENABLED: document.getElementById('atlassianMcpEnabled').checked ? 'true' : 'false',
 
         // OCI MCP settings
         OCI_MCP_ENABLED: document.getElementById('ociMcpEnabled').checked ? 'true' : 'false',

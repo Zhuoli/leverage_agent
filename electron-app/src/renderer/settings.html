@@ -85,17 +85,17 @@
                             </div>
                             <div class="mcp-server-actions">
                                 <label class="toggle-switch">
-                                    <input type="checkbox" id="atlassianMcpEnabled" checked disabled>
+                                    <input type="checkbox" id="atlassianMcpEnabled" onchange="onAtlassianMcpToggle()">
                                     <span class="toggle-slider"></span>
                                 </label>
-                                <button class="btn-configure" onclick="openAtlassianMcpSettings()">
+                                <button class="btn-configure" onclick="openAtlassianMcpSettings()" id="atlassianMcpConfigureBtn" disabled>
                                     Configure →
                                 </button>
                             </div>
                         </div>
                         <div class="mcp-server-status">
-                            <span class="status-badge required">Required</span>
-                            <span class="status-text">10 tools available</span>
+                            <span class="status-badge optional">Optional</span>
+                            <span class="status-text">10 tools available (disabled by default due to security policy)</span>
                         </div>
                     </div>
 

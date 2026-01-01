@@ -7,21 +7,8 @@
 
 const path = require('path');
 
-// Import the TypeScript agent SDK
-// Note: We require the compiled JavaScript from dist/
-let AtlassianAgentSDK;
-let loadConfig;
-
-try {
-    // Load the TypeScript compiled code
-    const agentModule = require(path.join(__dirname, '..', '..', '..', 'dist', 'cli', 'index.js'));
-
-    // For ES modules, we need to handle the import differently
-    // Since our TypeScript compiles to ESM, we'll use a dynamic import approach
-    console.log('Loading TypeScript agent...');
-} catch (error) {
-    console.error('Error loading TypeScript agent:', error);
-}
+// Note: We don't import the TypeScript agent directly to avoid ESM/CommonJS conflicts.
+// Instead, we spawn it as a separate Node.js process (see callNodeAgent method).
 
 class AgentClient {
     constructor(config) {
@@ -48,49 +35,18 @@ class AgentClient {
 
     /**
      * Initialize the TypeScript agent
+     *
+     * Note: The agent runs as a separate Node.js process via callNodeAgent(),
+     * so no direct initialization is needed.
      */
     async initialize() {
         if (this.initialized) {
             return;
         }
 
-        try {
-            // Dynamic import of ES modules from Node.js CommonJS
-            const agentPath = path.join(__dirname, '..', '..', '..', 'src', 'agent', 'agent-sdk.js');
-            const configPath = path.join(__dirname, '..', '..', '..', 'src', 'config', 'index.js');
-
-            // Use dynamic import() for ESM modules
-            const { AtlassianAgentSDK } = await import('file://' + path.join(__dirname, '..', '..', '..', 'dist', 'cli', 'index.js').replace(/\\/g, '/'));
-
-            // Create config object in the format expected by TypeScript agent
-            const agentConfig = {
-                modelProvider: this.config.MODEL_PROVIDER || 'oci-openai',
-                modelName: this.config.MODEL_NAME || undefined,
-                anthropicApiKey: this.config.ANTHROPIC_API_KEY || '',
-                openaiApiKey: this.config.OPENAI_API_KEY || '',
-                ociCompartmentId: this.config.OCI_COMPARTMENT_ID || '',
-                ociEndpoint: this.config.OCI_ENDPOINT || '',
-                ociConfigPath: this.config.OCI_CONFIG_PATH || undefined,
-                ociProfile: this.config.OCI_PROFILE || undefined,
-                jiraUrl: this.config.JIRA_URL,
-                jiraUsername: this.config.JIRA_USERNAME,
-                jiraApiToken: this.config.JIRA_API_TOKEN,
-                confluenceUrl: this.config.CONFLUENCE_URL,
-                confluenceUsername: this.config.CONFLUENCE_USERNAME,
-                confluenceApiToken: this.config.CONFLUENCE_API_TOKEN,
-                confluenceSpaceKey: this.config.CONFLUENCE_SPACE_KEY || '',
-                userDisplayName: this.config.USER_DISPLAY_NAME || '',
-                userEmail: this.config.USER_EMAIL || '',
-            };
-
-            // For now, use a simpler approach: spawn Node.js with the CLI
-            // This avoids ESM/CommonJS compatibility issues
-            console.log('Agent will be initialized on first message');
-            this.initialized = true;
-        } catch (error) {
-            console.error('Error initializing agent:', error);
-            throw error;
-        }
+        // Agent is spawned as a separate process, no direct initialization needed
+        console.log('Agent will be initialized on first message via spawned process');
+        this.initialized = true;
     }
 
     /**
