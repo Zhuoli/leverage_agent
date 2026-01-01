@@ -12,9 +12,49 @@ const statusText = document.getElementById('statusText');
 
 // State
 let isProcessing = false;
+let mermaidCounter = 0;
+
+// Initialize Mermaid for diagrams
+function initializeMermaid() {
+    if (typeof mermaid !== 'undefined') {
+        mermaid.initialize({
+            startOnLoad: false,
+            theme: 'default',
+            securityLevel: 'loose',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif'
+        });
+    }
+}
+
+// Configure Marked with highlight.js for syntax highlighting
+function configureMarked() {
+    if (typeof marked !== 'undefined' && typeof hljs !== 'undefined') {
+        marked.setOptions({
+            highlight: function(code, lang) {
+                if (lang && hljs.getLanguage(lang)) {
+                    try {
+                        return hljs.highlight(code, { language: lang }).value;
+                    } catch (e) {
+                        console.error('Highlight error:', e);
+                    }
+                }
+                // Auto-detect language if not specified
+                try {
+                    return hljs.highlightAuto(code).value;
+                } catch (e) {
+                    return code;
+                }
+            },
+            breaks: true,
+            gfm: true
+        });
+    }
+}
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
+    initializeMermaid();
+    configureMarked();
     checkConfiguration();
     setupEventListeners();
 });
@@ -130,17 +170,82 @@ function addMessage(text, sender, isError = false) {
 
     chatContainer.appendChild(messageDiv);
     chatContainer.scrollTop = chatContainer.scrollHeight;
+
+    // Render mermaid diagrams after adding to DOM
+    renderMermaidDiagrams();
 }
 
 function formatMessage(text) {
-    // Basic markdown-style formatting
-    let formatted = text
+    // Use marked for full markdown rendering if available
+    if (typeof marked !== 'undefined') {
+        try {
+            // First, extract and preserve mermaid code blocks
+            const mermaidBlocks = [];
+            let processedText = text.replace(/```mermaid\n([\s\S]*?)```/g, (match, code) => {
+                const placeholder = `__MERMAID_PLACEHOLDER_${mermaidBlocks.length}__`;
+                mermaidBlocks.push(code.trim());
+                return placeholder;
+            });
+
+            // Parse markdown
+            let html = marked.parse(processedText);
+
+            // Replace mermaid placeholders with actual mermaid containers
+            mermaidBlocks.forEach((code, index) => {
+                const mermaidId = `mermaid-${mermaidCounter++}`;
+                const mermaidHtml = `<div class="mermaid-container"><div class="mermaid" id="${mermaidId}">${escapeHtml(code)}</div></div>`;
+                html = html.replace(`__MERMAID_PLACEHOLDER_${index}__`, mermaidHtml);
+            });
+
+            return html;
+        } catch (e) {
+            console.error('Markdown parsing error:', e);
+            // Fallback to basic formatting
+            return basicFormatMessage(text);
+        }
+    }
+
+    // Fallback to basic formatting if marked is not available
+    return basicFormatMessage(text);
+}
+
+// Basic fallback formatting
+function basicFormatMessage(text) {
+    return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
         .replace(/\*(.*?)\*/g, '<em>$1</em>')
         .replace(/`(.*?)`/g, '<code>$1</code>')
         .replace(/\n/g, '<br>');
+}
 
-    return formatted;
+// Escape HTML for safe rendering
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Render mermaid diagrams after adding to DOM
+async function renderMermaidDiagrams() {
+    if (typeof mermaid === 'undefined') return;
+
+    const mermaidElements = document.querySelectorAll('.mermaid:not(.mermaid-rendered)');
+    for (const element of mermaidElements) {
+        try {
+            const id = element.id || `mermaid-${mermaidCounter++}`;
+            const graphDefinition = element.textContent;
+            const { svg } = await mermaid.render(id + '-svg', graphDefinition);
+            element.innerHTML = svg;
+            element.classList.add('mermaid-rendered');
+        } catch (e) {
+            console.error('Mermaid rendering error:', e);
+            element.innerHTML = `<div class="mermaid-error">Failed to render diagram: ${e.message}</div>`;
+            element.classList.add('mermaid-rendered');
+        }
+    }
 }
 
 function addTypingIndicator() {
