@@ -7,6 +7,7 @@ import { createProvider, type BaseProvider } from '../providers/index.js';
 import type { Message } from '../providers/types.js';
 import type { ConversationMessage, AgentOptions } from './types.js';
 import { FilesystemTools } from './filesystem-tools.js';
+import { SmartExploration } from './smart-exploration.js';
 import type { Tool } from '@anthropic-ai/sdk/resources/messages.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -20,6 +21,7 @@ export class AtlassianAgentSDK {
   private skillsLoader: SkillsLoader;
   private provider: BaseProvider;
   private filesystemTools?: FilesystemTools;
+  private smartExploration?: SmartExploration;
   private mcpProcess?: ChildProcess;
   private conversationHistory: ConversationMessage[] = [];
   private maxHistory: number;
@@ -38,6 +40,7 @@ export class AtlassianAgentSDK {
     const codeRepoPaths = this.getCodeRepoPaths();
     if (codeRepoPaths.length > 0) {
       this.filesystemTools = new FilesystemTools(codeRepoPaths);
+      this.smartExploration = new SmartExploration(this.filesystemTools);
     }
 
     // Provider will be initialized in initialize() after skills are loaded
@@ -178,6 +181,46 @@ export class AtlassianAgentSDK {
           properties: {},
         },
       },
+      {
+        name: 'get_project_overview',
+        description: 'Get a comprehensive overview of a codebase by reading anchor files (README, Makefile, package.json, etc.). ALWAYS call this FIRST when exploring a new codebase. This provides essential context about project structure, entry points, and architecture.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            repo_path: {
+              type: 'string',
+              description: 'Path to the repository to analyze',
+            },
+            max_files: {
+              type: 'number',
+              description: 'Maximum number of anchor files to read (default: 15)',
+            },
+          },
+          required: ['repo_path'],
+        },
+      },
+      {
+        name: 'find_relevant_files',
+        description: 'Find files relevant to a specific query using keyword matching and intelligent scoring. Use this to narrow down which files to read based on the user\'s question.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            query: {
+              type: 'string',
+              description: 'The query or keywords to search for',
+            },
+            repo_path: {
+              type: 'string',
+              description: 'Path to the repository',
+            },
+            max_results: {
+              type: 'number',
+              description: 'Maximum number of results to return (default: 10)',
+            },
+          },
+          required: ['query', 'repo_path'],
+        },
+      },
     ];
   }
 
@@ -208,6 +251,30 @@ export class AtlassianAgentSDK {
 
         case 'list_code_repositories':
           return await this.filesystemTools.getAllowedDirectoriesSummary();
+
+        case 'get_project_overview':
+          if (!this.smartExploration) {
+            throw new Error('Smart exploration not available');
+          }
+          const context = await this.smartExploration.getProjectOverview(
+            toolInput.repo_path,
+            { maxAnchorFiles: toolInput.max_files }
+          );
+          return JSON.stringify(context, null, 2);
+
+        case 'find_relevant_files':
+          if (!this.smartExploration) {
+            throw new Error('Smart exploration not available');
+          }
+          // First get project overview as context
+          const overviewContext = await this.smartExploration.getProjectOverview(toolInput.repo_path);
+          const relevantFiles = await this.smartExploration.findRelevantFiles(
+            toolInput.query,
+            toolInput.repo_path,
+            overviewContext,
+            toolInput.max_results || 10
+          );
+          return JSON.stringify(relevantFiles, null, 2);
 
         default:
           throw new Error(`Unknown tool: ${toolName}`);
@@ -280,14 +347,58 @@ Confluence:
 You have access to the following code repositories:
 ${repos.map(repo => `  - ${repo}`).join('\n')}
 
-You can use the following tools to explore and analyze code:
-- \`list_code_repositories\`: See all available repositories
-- \`read_file\`: Read the contents of a file
-- \`list_directory\`: List files in a directory
-- \`search_files\`: Search for files using glob patterns (e.g., "**/*.ts", "src/**/*.js")
-- \`get_file_info\`: Get file metadata (size, modification time)
+**CRITICAL: Code Exploration Rules**
 
-When asked about code repositories, you can directly access and analyze the code.`;
+⚠️ MANDATORY FIRST STEP for any codebase query:
+  → MUST call \`get_project_overview(repo_path)\` BEFORE any other file operations
+  → DO NOT use \`list_directory\` or \`read_file\` until you have the overview
+  → This single call reads README, Makefile, package.json, and 10+ key files efficiently
+
+**Available Tools:**
+
+Priority 1 - Smart Exploration (REQUIRED):
+- \`get_project_overview\`: **CALL THIS FIRST** - Reads README, Makefile, package.json, etc.
+  → Provides: project structure, entry points, architecture, dependencies
+  → Replaces 15+ manual file reads with 1 efficient call
+- \`find_relevant_files\`: Find files relevant to a query using intelligent scoring
+  → Use after getting overview to narrow down which files to read
+
+Priority 2 - Basic File Operations (use AFTER overview):
+- \`list_code_repositories\`: See all available repositories
+- \`read_file\`: Read specific file contents (use sparingly, after overview)
+- \`list_directory\`: List files in a directory (rarely needed, overview provides structure)
+- \`search_files\`: Search using glob patterns (prefer find_relevant_files instead)
+- \`get_file_info\`: Get file metadata
+
+**Exploration Strategy (FOLLOW THIS ORDER):**
+
+When exploring a codebase, you MUST follow this systematic approach:
+
+1. **MANDATORY: Start with Overview** (1 tool call):
+   - FIRST CALL: \`get_project_overview(repo_path)\`
+   - This automatically reads: README, Makefile, package.json, docker-compose, entry points, etc.
+   - Provides 80% of context needed to answer most questions
+
+2. **Identify Entry Points**:
+   - Check the overview for main entry points (from Makefile targets, package.json main field)
+   - Entry points reveal how the application starts and its architecture
+
+3. **Targeted Exploration** (5-10 tool calls max):
+   - Use \`find_relevant_files\` to locate files matching the user's query
+   - Read only the most relevant files (top 5-10)
+   - For large files (>500 lines), focus on key sections
+
+4. **Synthesize Answer**:
+   - Based on overview and targeted reading, provide comprehensive answer
+   - Reference specific files and line numbers when relevant
+
+**Important Guidelines:**
+- README.md: Always contains project overview and architecture
+- Makefile: Shows build targets, entry points, and workflows
+- package.json: JavaScript/TypeScript dependencies and scripts
+- Don't read test files unless specifically asked
+- Prioritize files mentioned in documentation
+- Keep total file reads under 20 per query`;
     }
 
     basePrompt += `\n\n**Guidelines:**

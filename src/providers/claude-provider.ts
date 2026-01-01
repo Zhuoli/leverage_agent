@@ -51,7 +51,7 @@ export class ClaudeProvider extends BaseProvider {
 
       // Agentic loop: keep calling until we get a text response (no more tool calls)
       let continueLoop = true;
-      const maxIterations = 10; // Prevent infinite loops
+      const maxIterations = options?.maxIterations || 25; // Increased default from 10 to 25
       let iteration = 0;
       let consecutiveErrors = 0;
       const maxConsecutiveErrors = 3; // Stop if too many tools fail in a row
@@ -62,6 +62,14 @@ export class ClaudeProvider extends BaseProvider {
         // Stop if too many consecutive errors
         if (consecutiveErrors >= maxConsecutiveErrors) {
           throw new Error(`Stopped after ${consecutiveErrors} consecutive tool errors`);
+        }
+
+        // If approaching max iterations, warn the agent to synthesize
+        if (iteration === maxIterations - 2 && this.tools.length > 0) {
+          conversationMessages.push({
+            role: 'user',
+            content: `You are approaching the tool call limit (${iteration}/${maxIterations}). Please synthesize your findings and provide a response based on what you have learned so far. You have 1-2 more tool calls available if absolutely necessary.`,
+          });
         }
 
         const requestParams: Anthropic.MessageCreateParams = {
@@ -148,8 +156,12 @@ export class ClaudeProvider extends BaseProvider {
         return textContent;
       }
 
-      // If we hit max iterations, return what we have
-      throw new Error('Max tool calling iterations reached');
+      // If we hit max iterations, provide helpful error message
+      throw new Error(
+        `Max tool calling iterations reached (${maxIterations}). The agent made ${iteration} tool calls but did not produce a final response. ` +
+        `This usually means the task is too complex or the agent is exploring too broadly. ` +
+        `Try: (1) Breaking down the query into smaller parts, (2) Being more specific, or (3) Increasing maxIterations in ChatOptions.`
+      );
     } catch (error) {
       console.error('Error calling Claude API:', error);
       throw new Error(`Claude API error: ${error}`);

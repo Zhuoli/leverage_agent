@@ -10,6 +10,7 @@ export interface Message {
 export interface ChatOptions {
   maxTokens?: number;
   temperature?: number;
+  maxIterations?: number;
 }
 
 export interface ProviderResponse {
