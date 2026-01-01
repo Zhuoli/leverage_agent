@@ -106,6 +106,8 @@ jobs:
         run: cd electron-app && npm run build:mac
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Disable hard links to avoid EEXIST errors when copying node_modules
+          USE_HARD_LINKS: false
 
       - name: List build outputs
         run: ls -lh electron-app/dist/

@@ -1017,3 +1017,276 @@ body {
     color: #0C5460;
     text-decoration: underline;
 }
+
+/* ========================================
+   Markdown Content Styles
+   ======================================== */
+
+/* Message text markdown content */
+.message-text h1,
+.message-text h2,
+.message-text h3,
+.message-text h4,
+.message-text h5,
+.message-text h6 {
+    margin: 16px 0 8px 0;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.message-text h1 { font-size: 1.5em; }
+.message-text h2 { font-size: 1.3em; }
+.message-text h3 { font-size: 1.15em; }
+.message-text h4 { font-size: 1em; }
+
+.message-text p {
+    margin: 8px 0;
+    line-height: 1.6;
+}
+
+.message-text ul,
+.message-text ol {
+    margin: 8px 0;
+    padding-left: 24px;
+}
+
+.message-text li {
+    margin: 4px 0;
+    line-height: 1.5;
+}
+
+.message-text blockquote {
+    margin: 12px 0;
+    padding: 8px 16px;
+    border-left: 4px solid var(--primary-color);
+    background-color: var(--bg-secondary);
+    color: var(--text-secondary);
+}
+
+.message-text a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.message-text a:hover {
+    text-decoration: underline;
+}
+
+.message-text hr {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 16px 0;
+}
+
+/* Tables */
+.message-text table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 12px 0;
+    font-size: 13px;
+}
+
+.message-text th,
+.message-text td {
+    border: 1px solid var(--border-color);
+    padding: 8px 12px;
+    text-align: left;
+}
+
+.message-text th {
+    background-color: var(--bg-secondary);
+    font-weight: 600;
+}
+
+.message-text tr:nth-child(even) {
+    background-color: var(--bg-secondary);
+}
+
+/* ========================================
+   Code Block Styles
+   ======================================== */
+
+/* Inline code */
+.message-text code {
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Courier New', monospace;
+    font-size: 0.9em;
+    background-color: rgba(175, 184, 193, 0.2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #d63384;
+}
+
+/* Code blocks */
+.message-text pre {
+    margin: 12px 0;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: #f6f8fa;
+    border: 1px solid var(--border-color);
+}
+
+.message-text pre code {
+    display: block;
+    padding: 16px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #24292f;
+    background-color: transparent;
+    border-radius: 0;
+}
+
+/* Highlight.js overrides for better integration */
+.message-text pre code.hljs {
+    padding: 16px;
+    background: #f6f8fa;
+}
+
+/* Code block language badge */
+.message-text pre[class*="language-"]::before {
+    content: attr(data-language);
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background-color: var(--bg-tertiary);
+    border-radius: 0 8px 0 4px;
+}
+
+/* Code copy button placeholder - can be added later */
+.code-block-wrapper {
+    position: relative;
+}
+
+/* ========================================
+   Mermaid Diagram Styles
+   ======================================== */
+
+.mermaid-container {
+    margin: 16px 0;
+    padding: 16px;
+    background-color: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow-x: auto;
+}
+
+.mermaid {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100px;
+}
+
+.mermaid svg {
+    max-width: 100%;
+    height: auto;
+}
+
+.mermaid-error {
+    color: var(--danger-color);
+    padding: 12px;
+    background-color: #FFEBE6;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+/* ========================================
+   Syntax Highlighting Theme Overrides
+   ======================================== */
+
+/* GitHub-like syntax highlighting colors */
+.hljs-comment,
+.hljs-quote {
+    color: #6a737d;
+    font-style: italic;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-addition {
+    color: #d73a49;
+}
+
+.hljs-number,
+.hljs-string,
+.hljs-meta .hljs-string,
+.hljs-literal,
+.hljs-doctag,
+.hljs-regexp {
+    color: #032f62;
+}
+
+.hljs-title,
+.hljs-section,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class {
+    color: #6f42c1;
+}
+
+.hljs-attribute,
+.hljs-attr,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-class .hljs-title,
+.hljs-type {
+    color: #005cc5;
+}
+
+.hljs-symbol,
+.hljs-bullet,
+.hljs-subst,
+.hljs-meta,
+.hljs-meta .hljs-keyword,
+.hljs-selector-attr,
+.hljs-selector-pseudo,
+.hljs-link {
+    color: #22863a;
+}
+
+.hljs-built_in,
+.hljs-deletion {
+    color: #b31d28;
+}
+
+.hljs-formula {
+    background-color: #f6f8fa;
+}
+
+.hljs-emphasis {
+    font-style: italic;
+}
+
+.hljs-strong {
+    font-weight: bold;
+}
+
+/* Dark mode for user messages (since they have blue background) */
+.message.user .message-text code {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+.message.user .message-text pre {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.message.user .message-text pre code {
+    color: #fff;
+}
+
+.message.user .message-text a {
+    color: #fff;
+    text-decoration: underline;
+}
+
+.message.user .message-text blockquote {
+    border-left-color: rgba(255, 255, 255, 0.5);
+    background-color: rgba(0, 0, 0, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+}
