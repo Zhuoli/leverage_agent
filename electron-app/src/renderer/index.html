@@ -114,7 +114,17 @@
             });
     </script>
 
-    <!-- Load compiled TypeScript application -->
-    <script src="../../dist/renderer/app.js"></script>
+    <!-- Bootstrap TypeScript application -->
+    <script>
+        // Use Node.js require to load the compiled CommonJS module
+        const path = require('path');
+        const appPath = path.join(__dirname, '../../dist/renderer/app.js');
+        console.log('[Bootstrap] Loading app from:', appPath);
+        try {
+            require(appPath);
+        } catch (error) {
+            console.error('[Bootstrap] Failed to load app:', error);
+        }
+    </script>
 </body>
 </html>
