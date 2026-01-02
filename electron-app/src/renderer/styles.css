@@ -132,8 +132,14 @@ body {
 }
 
 .conversation-item.active {
-    background-color: var(--bg-tertiary);
+    background-color: #E6F2FF;
     border-left-color: var(--primary-color);
+    border-left-width: 4px;
+}
+
+.conversation-item.active .conversation-title {
+    color: var(--primary-color);
+    font-weight: 600;
 }
 
 .conversation-title {
@@ -192,11 +198,13 @@ body {
 /* Sidebar */
 .sidebar {
     width: var(--sidebar-width);
+    min-width: var(--sidebar-width);
+    flex-shrink: 0;
     background-color: var(--bg-primary);
     border-right: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
-    transition: width 0.3s ease;
+    transition: width 0.3s ease, min-width 0.3s ease;
 }
 
 .sidebar.collapsed {
