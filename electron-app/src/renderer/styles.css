@@ -17,7 +17,6 @@
     --text-secondary: #5E6C84;
     --border-color: #DFE1E6;
     --sidebar-width: 280px;
-    --conversation-sidebar-width: 260px;
 }
 
 body {
@@ -32,30 +31,7 @@ body {
     height: 100vh;
 }
 
-/* Conversation History Sidebar */
-.conversation-sidebar {
-    width: var(--conversation-sidebar-width);
-    background-color: var(--bg-primary);
-    border-right: 1px solid var(--border-color);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    transition: width 0.3s ease, margin-left 0.3s ease;
-}
-
-.conversation-sidebar.collapsed {
-    width: 50px;
-    min-width: 50px;
-}
-
-.conversation-sidebar-header {
-    padding: 16px;
-    border-bottom: 1px solid var(--border-color);
-    display: flex;
-    gap: 8px;
-    align-items: center;
-}
-
+/* Sidebar Toggle Button */
 .sidebar-toggle-button {
     width: 32px;
     height: 32px;
@@ -82,18 +58,11 @@ body {
     display: inline-block;
 }
 
-.conversation-sidebar.collapsed .sidebar-toggle-button .toggle-icon {
+.sidebar.collapsed .sidebar-toggle-button .toggle-icon {
     transform: rotate(180deg);
 }
 
-.conversation-sidebar.collapsed .new-chat-button {
-    display: none;
-}
-
-.conversation-sidebar.collapsed .conversations-container {
-    display: none;
-}
-
+/* New Chat Button */
 .new-chat-button {
     width: 100%;
     padding: 12px 16px;
@@ -109,6 +78,7 @@ body {
     justify-content: center;
     gap: 8px;
     transition: transform 0.2s, box-shadow 0.2s;
+    margin-bottom: 16px;
 }
 
 .new-chat-button:hover {
@@ -125,10 +95,12 @@ body {
     font-weight: bold;
 }
 
+/* Conversations Container */
 .conversations-container {
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
+    margin-bottom: 16px;
 }
 
 .conversation-group {
@@ -224,25 +196,51 @@ body {
     border-right: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
+    transition: width 0.3s ease;
+}
+
+.sidebar.collapsed {
+    width: 50px;
+    min-width: 50px;
+}
+
+.sidebar.collapsed .sidebar-header h2,
+.sidebar.collapsed .new-chat-button .text,
+.sidebar.collapsed .conversations-container,
+.sidebar.collapsed .sidebar-bottom {
+    display: none;
 }
 
 .sidebar-header {
-    padding: 20px;
+    padding: 16px;
     border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 .sidebar-header h2 {
-    font-size: 18px;
+    font-size: 16px;
     color: var(--primary-color);
+    font-weight: 600;
 }
 
 .sidebar-content {
     flex: 1;
-    padding: 20px;
+    padding: 16px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    min-height: 0;
+}
+
+.sidebar-bottom {
+    margin-top: auto;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
 }
 
 .config-status {
@@ -299,9 +297,9 @@ body {
 }
 
 .settings-section {
-    margin-top: auto;
-    padding-top: 20px;
-    border-top: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .settings-btn {

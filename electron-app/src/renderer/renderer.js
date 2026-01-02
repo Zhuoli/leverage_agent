@@ -1460,10 +1460,10 @@ function renderConversationList(grouped, activeId) {
  * Start a new conversation
  */
 /**
- * Toggle conversation sidebar visibility
+ * Toggle sidebar visibility
  */
-function toggleConversationSidebar() {
-    const sidebar = document.getElementById('conversationSidebar');
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
     const isCollapsed = sidebar.classList.toggle('collapsed');
 
     // Save state to localStorage
@@ -1476,7 +1476,7 @@ function toggleConversationSidebar() {
  * Restore sidebar state from localStorage
  */
 function restoreSidebarState() {
-    const sidebar = document.getElementById('conversationSidebar');
+    const sidebar = document.getElementById('sidebar');
     const savedState = localStorage.getItem('sidebarCollapsed');
 
     if (savedState === 'true') {

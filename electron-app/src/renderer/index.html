@@ -17,48 +17,48 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- Conversation History Sidebar -->
-        <div class="conversation-sidebar" id="conversationSidebar">
-            <div class="conversation-sidebar-header">
-                <button class="sidebar-toggle-button" id="sidebarToggleButton" onclick="toggleConversationSidebar()" title="Toggle chat history">
+        <!-- Combined Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <button class="sidebar-toggle-button" id="sidebarToggleButton" onclick="toggleSidebar()" title="Toggle sidebar">
                     <span class="toggle-icon">◀</span>
                 </button>
-                <button class="new-chat-button" id="newChatButton" onclick="startNewConversation()">
-                    <span class="icon">+</span>
-                    <span class="text">New Chat</span>
-                </button>
-            </div>
-
-            <div class="conversations-container" id="conversationsContainer">
-                <!-- Dynamically populated by JavaScript -->
-            </div>
-        </div>
-
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="sidebar-header">
                 <h2>🤖 AI Assistant</h2>
             </div>
 
             <div class="sidebar-content">
-                <div class="config-status" id="configStatus">
-                    <div class="status-indicator" id="statusIndicator"></div>
-                    <span id="statusText">Checking configuration...</span>
+                <!-- New Chat Button -->
+                <button class="new-chat-button" id="newChatButton" onclick="startNewConversation()">
+                    <span class="icon">+</span>
+                    <span class="text">New Chat</span>
+                </button>
+
+                <!-- Conversation History -->
+                <div class="conversations-container" id="conversationsContainer">
+                    <!-- Dynamically populated by JavaScript -->
                 </div>
 
-                <div class="sidebar-info">
-                    <h3>About</h3>
-                    <p class="info-text">AI-powered assistant for Jira and Confluence with code repository access.</p>
-                    <p class="info-version">Version 3.0.0</p>
-                </div>
+                <!-- Bottom Section -->
+                <div class="sidebar-bottom">
+                    <div class="config-status" id="configStatus">
+                        <div class="status-indicator" id="statusIndicator"></div>
+                        <span id="statusText">Checking configuration...</span>
+                    </div>
 
-                <div class="settings-section">
-                    <button class="settings-btn" onclick="openSettings()">
-                        ⚙️ Settings
-                    </button>
-                    <button class="settings-btn" onclick="clearChat()">
-                        🗑️ Clear Chat
-                    </button>
+                    <div class="sidebar-info">
+                        <h3>About</h3>
+                        <p class="info-text">AI-powered assistant for Jira and Confluence with code repository access.</p>
+                        <p class="info-version">Version 3.0.0</p>
+                    </div>
+
+                    <div class="settings-section">
+                        <button class="settings-btn" onclick="openSettings()">
+                            ⚙️ Settings
+                        </button>
+                        <button class="settings-btn" onclick="clearChat()">
+                            🗑️ Clear Chat
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
