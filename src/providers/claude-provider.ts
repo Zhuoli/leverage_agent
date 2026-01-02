@@ -88,11 +88,14 @@ export class ClaudeProvider extends BaseProvider {
         const response = await this.client.messages.create(requestParams);
 
         // Log response metadata for debugging truncation issues
-        console.error(`[Claude API] Stop reason: ${response.stop_reason}`);
-        console.error(`[Claude API] Usage - Input: ${response.usage.input_tokens}, Output: ${response.usage.output_tokens}`);
+        const apiLogMessage = `[Claude API] Stop reason: ${response.stop_reason} | Input tokens: ${response.usage.input_tokens} | Output tokens: ${response.usage.output_tokens} | Max allowed: ${requestParams.max_tokens}`;
+        console.error(apiLogMessage);
+        console.log(apiLogMessage); // Also log to stdout so it appears in Electron logs
+
         if (response.stop_reason === 'max_tokens') {
-          console.error(`[Claude API] WARNING: Response was truncated due to max_tokens limit!`);
-          console.error(`[Claude API] Consider increasing max_tokens (current: ${requestParams.max_tokens})`);
+          const warningMessage = `[Claude API] WARNING: Response was truncated due to max_tokens limit! Increase max_tokens (current: ${requestParams.max_tokens})`;
+          console.error(warningMessage);
+          console.log(warningMessage);
         }
 
         // Check if there are tool calls
