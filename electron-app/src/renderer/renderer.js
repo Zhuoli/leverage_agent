@@ -537,24 +537,6 @@ function generateFilename(text) {
     return `${filename}.md`;
 }
 
-function quickAction(action) {
-    const actions = {
-        'sprint': 'Show me my current sprint tasks',
-        'today': 'What should I focus on today?',
-        'search': 'Search Confluence for ',
-        'recent': 'Show me recent Confluence pages'
-    };
-
-    if (actions[action]) {
-        messageInput.value = actions[action];
-        if (action === 'search') {
-            messageInput.focus();
-        } else {
-            sendMessage();
-        }
-    }
-}
-
 function clearChat() {
     if (confirm('Are you sure you want to clear the chat history?')) {
         chatContainer.innerHTML = `

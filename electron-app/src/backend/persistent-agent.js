@@ -287,41 +287,6 @@ class PersistentAgent {
             this.initialized = false;
         }
     }
-
-    /**
-     * Quick action: Get my sprint tasks
-     */
-    async getMySprintTasks() {
-        return this.sendMessage('Show me my current sprint tasks');
-    }
-
-    /**
-     * Quick action: Search Confluence
-     */
-    async searchConfluence(query) {
-        return this.sendMessage(`Search Confluence for: ${query}`);
-    }
-
-    /**
-     * Quick action: Get high priority tasks
-     */
-    async getHighPriorityTasks() {
-        return this.sendMessage('Show me my high priority tasks');
-    }
-
-    /**
-     * Quick action: Get recent Confluence pages
-     */
-    async getRecentConfluencePages() {
-        return this.sendMessage('Show me recent Confluence pages');
-    }
-
-    /**
-     * Quick action: Analyze workload
-     */
-    async analyzeWorkload() {
-        return this.sendMessage('Analyze my current workload and suggest priorities');
-    }
 }
 
 module.exports = PersistentAgent;
