@@ -2,7 +2,7 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
-const AgentClient = require('../backend/agent-client');
+const PersistentAgent = require('../backend/persistent-agent');
 const ConfigManager = require('../backend/config');
 const ConversationManager = require('../backend/conversation-manager');
 
@@ -147,11 +147,12 @@ app.whenReady().then(async () => {
     conversationManager = new ConversationManager(conversationsPath);
     await conversationManager.load();
 
-    // Initialize agent client
+    // Initialize persistent agent
     try {
-        agentClient = new AgentClient(configManager.getConfig(), conversationManager);
+        agentClient = new PersistentAgent(configManager.getConfig(), conversationManager);
+        // Agent will initialize lazily on first message
     } catch (error) {
-        console.error('Failed to initialize agent client:', error);
+        console.error('Failed to initialize persistent agent:', error);
     }
 
     createWindow();
@@ -189,12 +190,16 @@ ipcMain.on('get-settings', (event) => {
     event.reply('settings-loaded', config);
 });
 
-ipcMain.on('save-settings', (event, settings) => {
+ipcMain.on('save-settings', async (event, settings) => {
     try {
         configManager.saveConfig(settings);
 
-        // Reinitialize agent client with new config
-        agentClient = new AgentClient(settings, conversationManager);
+        // Reinitialize persistent agent with new config
+        // First cleanup old agent
+        if (agentClient) {
+            await agentClient.cleanup();
+        }
+        agentClient = new PersistentAgent(settings, conversationManager);
 
         event.reply('settings-saved', true);
     } catch (error) {
