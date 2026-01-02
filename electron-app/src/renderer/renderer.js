@@ -77,6 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
     configureMarked();
     checkConfiguration();
     setupEventListeners();
+    loadConversations();
 });
 
 function setupEventListeners() {
@@ -117,6 +118,27 @@ function setupEventListeners() {
 
     ipcRenderer.on('config-status', (event, status) => {
         updateConfigStatus(status);
+    });
+
+    // Conversation history listeners
+    ipcRenderer.on('conversations-list', (event, data) => {
+        renderConversationList(data.grouped, data.activeId);
+    });
+
+    ipcRenderer.on('conversation-created', (event, data) => {
+        clearChatArea();
+    });
+
+    ipcRenderer.on('conversation-loaded', (event, data) => {
+        loadConversationMessages(data.conversation);
+    });
+
+    ipcRenderer.on('conversation-deleted', (event, data) => {
+        // List will be updated via conversations-list event
+    });
+
+    ipcRenderer.on('conversation-error', (event, data) => {
+        console.error('Conversation error:', data.message);
     });
 }
 
@@ -1209,3 +1231,167 @@ window.addEventListener('click', (event) => {
         closeSettings();
     }
 });
+
+// ==================== Conversation History Functions ====================
+
+/**
+ * Load all conversations from backend
+ */
+function loadConversations() {
+    ipcRenderer.send('get-conversations');
+}
+
+/**
+ * Render the conversation list in the sidebar
+ */
+function renderConversationList(grouped, activeId) {
+    const container = document.getElementById('conversationsContainer');
+    container.innerHTML = '';
+
+    // Check if there are any conversations
+    const hasConversations = grouped.today.length + grouped.yesterday.length +
+                             grouped.lastWeek.length + grouped.older.length > 0;
+
+    if (!hasConversations) {
+        container.innerHTML = `
+            <div class="conversations-empty">
+                <p>💬</p>
+                <p>No conversations yet</p>
+                <p>Start a new chat to begin!</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Render each group
+    const groups = [
+        { title: 'Today', conversations: grouped.today },
+        { title: 'Yesterday', conversations: grouped.yesterday },
+        { title: 'Last 7 Days', conversations: grouped.lastWeek },
+        { title: 'Older', conversations: grouped.older }
+    ];
+
+    for (const group of groups) {
+        if (group.conversations.length > 0) {
+            const groupDiv = document.createElement('div');
+            groupDiv.className = 'conversation-group';
+
+            const titleDiv = document.createElement('div');
+            titleDiv.className = 'conversation-group-title';
+            titleDiv.textContent = group.title;
+            groupDiv.appendChild(titleDiv);
+
+            for (const conv of group.conversations) {
+                const convItem = document.createElement('div');
+                convItem.className = 'conversation-item';
+                if (conv.id === activeId) {
+                    convItem.classList.add('active');
+                }
+                convItem.onclick = () => selectConversation(conv.id);
+
+                const titleDiv = document.createElement('div');
+                titleDiv.className = 'conversation-title';
+                titleDiv.textContent = conv.title;
+
+                const metaDiv = document.createElement('div');
+                metaDiv.className = 'conversation-meta';
+
+                const timeDiv = document.createElement('div');
+                timeDiv.className = 'conversation-time';
+                timeDiv.textContent = formatRelativeTime(conv.updatedAt);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'conversation-delete';
+                deleteBtn.textContent = '🗑';
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteConversation(conv.id);
+                };
+
+                metaDiv.appendChild(timeDiv);
+                metaDiv.appendChild(deleteBtn);
+
+                convItem.appendChild(titleDiv);
+                convItem.appendChild(metaDiv);
+                groupDiv.appendChild(convItem);
+            }
+
+            container.appendChild(groupDiv);
+        }
+    }
+}
+
+/**
+ * Start a new conversation
+ */
+function startNewConversation() {
+    ipcRenderer.send('new-conversation');
+}
+
+/**
+ * Select and load a conversation
+ */
+function selectConversation(conversationId) {
+    ipcRenderer.send('load-conversation', { id: conversationId });
+}
+
+/**
+ * Delete a conversation
+ */
+function deleteConversation(conversationId) {
+    if (confirm('Delete this conversation?')) {
+        ipcRenderer.send('delete-conversation', { id: conversationId });
+    }
+}
+
+/**
+ * Load conversation messages into the chat area
+ */
+function loadConversationMessages(conversation) {
+    clearChatArea();
+
+    if (!conversation || conversation.messages.length === 0) {
+        return;
+    }
+
+    // Render each message
+    for (const message of conversation.messages) {
+        addMessage(message.content, message.role);
+    }
+}
+
+/**
+ * Clear the chat area
+ */
+function clearChatArea() {
+    const chatContainer = document.getElementById('chatContainer');
+    chatContainer.innerHTML = '';
+}
+
+/**
+ * Format timestamp as relative time
+ */
+function formatRelativeTime(timestamp) {
+    const now = Date.now();
+    const diff = now - timestamp;
+
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (seconds < 60) {
+        return 'Just now';
+    } else if (minutes < 60) {
+        return `${minutes}m ago`;
+    } else if (hours < 24) {
+        const date = new Date(timestamp);
+        return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    } else if (days < 7) {
+        const date = new Date(timestamp);
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    } else {
+        const date = new Date(timestamp);
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+}
