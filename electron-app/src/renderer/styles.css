@@ -382,8 +382,9 @@ body {
     line-height: 1.5;
     word-wrap: break-word;
     overflow-wrap: break-word;
+    word-break: break-word;
     max-width: 100%;
-    overflow-x: auto;
+    white-space: pre-wrap; /* Preserve line breaks but wrap text */
 }
 
 .message-time {
@@ -1312,6 +1313,7 @@ body {
     overflow: hidden;
     background-color: #f6f8fa;
     border: 1px solid var(--border-color);
+    white-space: pre; /* Restore pre formatting for code blocks */
 }
 
 .message-text pre code {
@@ -1323,6 +1325,8 @@ body {
     color: #24292f;
     background-color: transparent;
     border-radius: 0;
+    white-space: pre; /* Preserve exact formatting in code */
+    word-break: normal; /* Don't break words in code */
 }
 
 /* Highlight.js overrides for better integration */
@@ -1538,12 +1542,15 @@ body {
 .code-block-wrapper pre {
     margin: 0;
     border-radius: 0 0 8px 8px;
+    white-space: pre; /* Preserve formatting */
 }
 
 .code-block-wrapper pre code {
     display: block;
     padding: 16px;
     overflow-x: auto;
+    white-space: pre; /* Preserve exact formatting in code */
+    word-break: normal; /* Don't break words in code */
 }
 
 /* Dark mode code block styles for user messages */
