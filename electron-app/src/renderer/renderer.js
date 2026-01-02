@@ -267,6 +267,16 @@ function addMessage(text, sender, isError = false) {
     content.appendChild(textDiv);
     content.appendChild(time);
 
+    // Add save button for assistant messages
+    if (sender === 'assistant' && !isError) {
+        const saveButton = document.createElement('button');
+        saveButton.className = 'message-save-button';
+        saveButton.innerHTML = '<span class="save-icon">💾</span><span class="save-text">Save as Markdown</span>';
+        saveButton.title = 'Save this response as a Markdown file';
+        saveButton.onclick = () => saveMessageToFile(text, messageDiv);
+        content.appendChild(saveButton);
+    }
+
     messageDiv.appendChild(avatar);
     messageDiv.appendChild(content);
 
@@ -439,6 +449,91 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+/**
+ * Save a message to a file
+ */
+function saveMessageToFile(text, messageElement) {
+    // Generate a suggested filename from the message content
+    const suggestedFilename = generateFilename(text);
+
+    console.log('[Save] Saving message to file, suggested name:', suggestedFilename);
+
+    // Add visual feedback
+    const saveButton = messageElement.querySelector('.message-save-button');
+    const originalText = saveButton.innerHTML;
+    saveButton.innerHTML = '<span class="save-icon">⏳</span><span class="save-text">Saving...</span>';
+    saveButton.disabled = true;
+
+    // Send to main process to show save dialog
+    ipcRenderer.send('save-message-to-file', {
+        content: text,
+        suggestedFilename: suggestedFilename
+    });
+
+    // Listen for response
+    ipcRenderer.once('save-message-result', (event, result) => {
+        if (result.success) {
+            // Show success feedback
+            saveButton.innerHTML = '<span class="save-icon">✓</span><span class="save-text">Saved!</span>';
+            saveButton.classList.add('saved');
+
+            // Reset after 2 seconds
+            setTimeout(() => {
+                saveButton.innerHTML = originalText;
+                saveButton.disabled = false;
+                saveButton.classList.remove('saved');
+            }, 2000);
+        } else if (result.cancelled) {
+            // User cancelled - just reset
+            saveButton.innerHTML = originalText;
+            saveButton.disabled = false;
+        } else {
+            // Error occurred
+            saveButton.innerHTML = '<span class="save-icon">✗</span><span class="save-text">Failed</span>';
+            alert('Failed to save file: ' + result.error);
+
+            // Reset after 2 seconds
+            setTimeout(() => {
+                saveButton.innerHTML = originalText;
+                saveButton.disabled = false;
+            }, 2000);
+        }
+    });
+}
+
+/**
+ * Generate a filename from message content
+ */
+function generateFilename(text) {
+    // Remove markdown formatting for title extraction
+    const plainText = text
+        .replace(/[#*`_~\[\]()]/g, '') // Remove markdown symbols
+        .replace(/\n+/g, ' ')          // Replace newlines with spaces
+        .trim();
+
+    // Get first 50 characters or first line, whichever is shorter
+    let title = plainText.substring(0, 50);
+    const firstLineEnd = title.indexOf('.');
+    if (firstLineEnd > 10) {
+        title = title.substring(0, firstLineEnd);
+    }
+
+    // Clean up for filename
+    const filename = title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')   // Replace non-alphanumeric with dash
+        .replace(/^-+|-+$/g, '')        // Remove leading/trailing dashes
+        .substring(0, 50);              // Limit length
+
+    // Add timestamp if filename is too short or generic
+    if (filename.length < 10 || filename === 'technical-design' || filename === 'design-document') {
+        const timestamp = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+        return `${filename}-${timestamp}.md`;
+    }
+
+    return `${filename}.md`;
 }
 
 function quickAction(action) {

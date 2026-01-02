@@ -1577,3 +1577,46 @@ body {
     border-color: #1f883d;
     color: #7ee787;
 }
+
+/* Message Save Button */
+.message-save-button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 8px 14px;
+    background-color: #fff;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    font-size: 0.875em;
+    color: #24292f;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.message-save-button:hover {
+    background-color: #f6f8fa;
+    border-color: #1f883d;
+}
+
+.message-save-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.message-save-button .save-icon {
+    font-size: 1.1em;
+}
+
+.message-save-button.saved {
+    background-color: #dafbe1;
+    border-color: #1f883d;
+    color: #1f883d;
+}
+
+/* Adjust message content layout for button */
+.message.assistant .message-content {
+    display: flex;
+    flex-direction: column;
+}

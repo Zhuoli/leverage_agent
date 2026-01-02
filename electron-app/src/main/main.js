@@ -804,6 +804,48 @@ ipcMain.on('chat-message', async (event, data) => {
     }
 });
 
+// Save message to file handler
+ipcMain.on('save-message-to-file', async (event, data) => {
+    const { content, suggestedFilename } = data;
+    const { dialog } = require('electron');
+    const fs = require('fs');
+    const path = require('path');
+
+    try {
+        // Show save dialog
+        const result = await dialog.showSaveDialog(mainWindow, {
+            title: 'Save Message as Markdown',
+            defaultPath: path.join(app.getPath('documents'), suggestedFilename),
+            filters: [
+                { name: 'Markdown Files', extensions: ['md'] },
+                { name: 'Text Files', extensions: ['txt'] },
+                { name: 'All Files', extensions: ['*'] }
+            ],
+            properties: ['createDirectory', 'showOverwriteConfirmation']
+        });
+
+        if (result.canceled) {
+            event.reply('save-message-result', { cancelled: true });
+            return;
+        }
+
+        // Write file
+        fs.writeFileSync(result.filePath, content, 'utf8');
+
+        console.log('Message saved to:', result.filePath);
+        event.reply('save-message-result', {
+            success: true,
+            filePath: result.filePath
+        });
+    } catch (error) {
+        console.error('Failed to save message:', error);
+        event.reply('save-message-result', {
+            success: false,
+            error: error.message
+        });
+    }
+});
+
 // Conversation management handlers
 ipcMain.on('get-conversations', (event) => {
     try {
