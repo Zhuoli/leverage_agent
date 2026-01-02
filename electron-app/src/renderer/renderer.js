@@ -132,6 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
     checkConfiguration();
     setupEventListeners();
     loadConversations();
+    restoreSidebarState();
 });
 
 function setupEventListeners() {
@@ -1476,6 +1477,32 @@ function renderConversationList(grouped, activeId) {
 /**
  * Start a new conversation
  */
+/**
+ * Toggle conversation sidebar visibility
+ */
+function toggleConversationSidebar() {
+    const sidebar = document.getElementById('conversationSidebar');
+    const isCollapsed = sidebar.classList.toggle('collapsed');
+
+    // Save state to localStorage
+    localStorage.setItem('sidebarCollapsed', isCollapsed ? 'true' : 'false');
+
+    console.log('[Sidebar] Toggled:', isCollapsed ? 'collapsed' : 'expanded');
+}
+
+/**
+ * Restore sidebar state from localStorage
+ */
+function restoreSidebarState() {
+    const sidebar = document.getElementById('conversationSidebar');
+    const savedState = localStorage.getItem('sidebarCollapsed');
+
+    if (savedState === 'true') {
+        sidebar.classList.add('collapsed');
+        console.log('[Sidebar] Restored state: collapsed');
+    }
+}
+
 function startNewConversation() {
     ipcRenderer.send('new-conversation');
 }
