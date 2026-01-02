@@ -136,6 +136,13 @@ class ChatBot {
             messages: messages
         });
 
+        // Log response metadata for debugging truncation issues
+        console.log('[Claude API] Stop reason:', response.stop_reason);
+        console.log('[Claude API] Usage - Input:', response.usage.input_tokens, 'Output:', response.usage.output_tokens);
+        if (response.stop_reason === 'max_tokens') {
+            console.warn('[Claude API] WARNING: Response was truncated due to max_tokens limit!');
+        }
+
         const assistantMessage = response.content[0].text;
 
         // Update conversation history (keep last 10 messages)
