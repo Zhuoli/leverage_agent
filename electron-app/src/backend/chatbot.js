@@ -131,7 +131,7 @@ class ChatBot {
 
         const response = await this.anthropic.messages.create({
             model: 'claude-3-5-sonnet-20241022',
-            max_tokens: 8192, // Increased for long documents (Claude max output is 8192)
+            max_tokens: 32768, // Very high limit for comprehensive documents (Claude supports up to 64k)
             system: systemPrompt,
             messages: messages
         });
