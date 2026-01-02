@@ -183,6 +183,83 @@ export class IPCService {
     }
 
     /**
+     * Get API key
+     */
+    static async getApiKey(): Promise<string> {
+        return ipcRenderer.invoke('get-api-key');
+    }
+
+    /**
+     * Save API key
+     */
+    static async saveApiKey(apiKey: string): Promise<void> {
+        return ipcRenderer.invoke('save-api-key', apiKey);
+    }
+
+    /**
+     * Test API key
+     */
+    static async testApiKey(apiKey: string): Promise<{ success: boolean; error?: string }> {
+        return ipcRenderer.invoke('test-api-key', apiKey);
+    }
+
+    /**
+     * Get MCP servers
+     */
+    static async getMCPServers(): Promise<any[]> {
+        return ipcRenderer.invoke('get-mcp-servers');
+    }
+
+    /**
+     * Save MCP servers
+     */
+    static async saveMCPServers(servers: any[]): Promise<void> {
+        return ipcRenderer.invoke('save-mcp-servers', servers);
+    }
+
+    /**
+     * Get skills
+     */
+    static async getSkills(): Promise<any[]> {
+        return ipcRenderer.invoke('get-skills');
+    }
+
+    /**
+     * Save skills
+     */
+    static async saveSkills(skills: any[]): Promise<void> {
+        return ipcRenderer.invoke('save-skills', skills);
+    }
+
+    /**
+     * Get code repositories
+     */
+    static async getCodeRepos(): Promise<any[]> {
+        return ipcRenderer.invoke('get-code-repos');
+    }
+
+    /**
+     * Save code repositories
+     */
+    static async saveCodeRepos(repos: any[]): Promise<void> {
+        return ipcRenderer.invoke('save-code-repos', repos);
+    }
+
+    /**
+     * Select directory
+     */
+    static async selectDirectory(): Promise<{ cancelled: boolean; path?: string }> {
+        return ipcRenderer.invoke('select-directory');
+    }
+
+    /**
+     * Open directory in file explorer
+     */
+    static async openDirectory(path: string): Promise<void> {
+        return ipcRenderer.invoke('open-directory', path);
+    }
+
+    /**
      * Generic event listener registration
      */
     static on(channel: string, callback: (...args: any[]) => void): () => void {

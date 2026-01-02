@@ -42,7 +42,7 @@ export class MarkdownRenderer {
         try {
             // Extract and preserve mermaid code blocks
             const mermaidBlocks: string[] = [];
-            let processedText = text.replace(/```mermaid\n([\s\S]*?)```/g, (match, code) => {
+            let processedText = text.replace(/```mermaid\n([\s\S]*?)```/g, (_match, code) => {
                 const placeholder = `__MERMAID_PLACEHOLDER_${mermaidBlocks.length}__`;
                 mermaidBlocks.push(code.trim());
                 return placeholder;

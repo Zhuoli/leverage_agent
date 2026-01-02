@@ -107,7 +107,7 @@ export class MessageRenderer {
     /**
      * Create save button for assistant messages
      */
-    private static createSaveButton(text: string, messageElement: HTMLElement): HTMLButtonElement {
+    private static createSaveButton(text: string, _messageElement: HTMLElement): HTMLButtonElement {
         const saveButton = document.createElement('button');
         saveButton.className = 'message-save-button';
         saveButton.innerHTML = '<span class="save-icon">💾</span><span class="save-text">Save as Markdown</span>';
