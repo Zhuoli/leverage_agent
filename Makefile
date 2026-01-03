@@ -105,6 +105,11 @@ app-dev: build ## Launch the Electron app with DevTools
 	@echo "$(BLUE)Launching in development mode with DevTools...$(NC)"
 	@cd electron-app && npm run dev
 
+cli: build ## Launch the terminal chat assistant (loads skills and MCPs)
+	@echo "$(BLUE)Starting Terminal Chat Assistant...$(NC)"
+	@echo "$(GREEN)Loading skills and MCP servers...$(NC)"
+	@node dist/cli/index.js chat
+
 ##@ MCP Server Testing
 
 test-auth: build ## Test authentication for all services (Atlassian + OCI)
