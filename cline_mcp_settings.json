@@ -1,0 +1,61 @@
+{
+  "mcpServers": {
+    "atlassian": {
+      "command": "node",
+      "args": ["/home/user/leverage_agent/dist/mcp/atlassian-server.js"],
+      "env": {
+        "JIRA_URL": "https://your-company.atlassian.net",
+        "JIRA_USERNAME": "your.email@company.com",
+        "JIRA_API_TOKEN": "your-jira-api-token",
+        "CONFLUENCE_URL": "https://your-company.atlassian.net/wiki",
+        "CONFLUENCE_USERNAME": "your.email@company.com",
+        "CONFLUENCE_API_TOKEN": "your-confluence-api-token",
+        "CONFLUENCE_DEFAULT_SPACE": "TEAM"
+      },
+      "alwaysAllow": [
+        "search_jira_tickets",
+        "get_my_sprint_tasks",
+        "search_confluence_pages",
+        "get_confluence_page_content",
+        "get_recent_confluence_pages"
+      ],
+      "disabled": false
+    },
+    "oci": {
+      "command": "node",
+      "args": ["/home/user/leverage_agent/dist/mcp/oci-server.js"],
+      "env": {
+        "OCI_MCP_ENABLED": "true",
+        "OCI_MCP_REGION": "us-phoenix-1",
+        "OCI_MCP_COMPARTMENT_ID": "ocid1.compartment.oc1..xxxxx",
+        "OCI_MCP_TENANCY_ID": "ocid1.tenancy.oc1..xxxxx",
+        "OCI_MCP_PROFILE": "DEFAULT",
+        "OCI_MCP_CONFIG_PATH": "~/.oci/config"
+      },
+      "alwaysAllow": [
+        "test_oci_connection",
+        "list_oci_compartments",
+        "list_oke_clusters",
+        "list_devops_projects",
+        "list_container_repositories"
+      ],
+      "disabled": false
+    },
+    "filesystem": {
+      "command": "node",
+      "args": ["/home/user/leverage_agent/dist/mcp/filesystem-server.js"],
+      "env": {
+        "CODE_REPO_PATHS": "/home/user/projects/my-app:/home/user/projects/shared-lib"
+      },
+      "alwaysAllow": [
+        "read_file",
+        "read_multiple_files",
+        "list_directory",
+        "search_files",
+        "get_file_info",
+        "list_allowed_directories"
+      ],
+      "disabled": false
+    }
+  }
+}
