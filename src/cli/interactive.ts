@@ -53,6 +53,27 @@ export async function startInteractiveChat(agent: AtlassianAgentSDK): Promise<vo
       return;
     }
 
+    // MCP commands
+    if (message.toLowerCase() === 'mcp' || message.toLowerCase() === 'mcp list') {
+      showMCPStatus(agent);
+      rl.prompt();
+      return;
+    }
+
+    if (message.toLowerCase().startsWith('mcp enable ')) {
+      const serverName = message.slice(11).trim();
+      await handleMCPEnable(agent, serverName);
+      rl.prompt();
+      return;
+    }
+
+    if (message.toLowerCase().startsWith('mcp disable ')) {
+      const serverName = message.slice(12).trim();
+      await handleMCPDisable(agent, serverName);
+      rl.prompt();
+      return;
+    }
+
     try {
       // Send message to agent
       const response = await agent.chat(message);
@@ -80,11 +101,16 @@ export async function startInteractiveChat(agent: AtlassianAgentSDK): Promise<vo
  */
 function showHelp(): void {
   console.log(chalk.blue('\n📚 Available Commands:'));
-  console.log(chalk.gray('  help  - Show this help message'));
-  console.log(chalk.gray('  clear - Clear conversation history'));
-  console.log(chalk.gray('  info  - Show agent information'));
-  console.log(chalk.gray('  exit  - Exit the chat'));
-  console.log(chalk.gray('  quit  - Exit the chat'));
+  console.log(chalk.gray('  help             - Show this help message'));
+  console.log(chalk.gray('  clear            - Clear conversation history'));
+  console.log(chalk.gray('  info             - Show agent information'));
+  console.log(chalk.gray('  exit / quit      - Exit the chat'));
+  console.log();
+  console.log(chalk.blue('📦 MCP Commands:'));
+  console.log(chalk.gray('  mcp              - Show MCP server status'));
+  console.log(chalk.gray('  mcp list         - Show MCP server status'));
+  console.log(chalk.gray('  mcp enable <name>  - Start an MCP server'));
+  console.log(chalk.gray('  mcp disable <name> - Stop an MCP server'));
   console.log();
   console.log(chalk.blue('💬 Example queries:'));
   console.log(chalk.gray('  "Show me my sprint tasks"'));
@@ -108,6 +134,75 @@ function showInfo(agent: AtlassianAgentSDK): void {
   console.log(chalk.gray(`  Skills loaded: ${skillsInfo.count}`));
   if (skillsInfo.count > 0) {
     console.log(chalk.gray(`  Skills: ${skillsInfo.names.join(', ')}`));
+  }
+  console.log();
+}
+
+/**
+ * Show MCP server status
+ */
+function showMCPStatus(agent: AtlassianAgentSDK): void {
+  const mcpInfo = agent.getMCPInfo();
+
+  console.log(chalk.blue('\n📦 MCP Server Status:\n'));
+
+  if (mcpInfo.length === 0) {
+    console.log(chalk.yellow('  No MCP servers available. Check your .env configuration.'));
+    console.log();
+    return;
+  }
+
+  for (const mcp of mcpInfo) {
+    const statusIcon = mcp.running ? chalk.green('●') : chalk.gray('○');
+    const statusText = mcp.running
+      ? chalk.green(`running (${mcp.toolCount} tools)`)
+      : chalk.gray('stopped');
+
+    console.log(`  ${statusIcon} ${chalk.cyan(mcp.name)} - ${statusText}`);
+    console.log(chalk.gray(`      ${mcp.description}`));
+  }
+
+  console.log();
+  console.log(chalk.gray('  Use "mcp enable <name>" or "mcp disable <name>" to manage servers'));
+  console.log();
+}
+
+/**
+ * Handle MCP enable command
+ */
+async function handleMCPEnable(agent: AtlassianAgentSDK, serverName: string): Promise<void> {
+  if (!serverName) {
+    console.log(chalk.yellow('\n  Usage: mcp enable <server-name>\n'));
+    return;
+  }
+
+  console.log(chalk.blue(`\n  Starting MCP server '${serverName}'...`));
+  const result = await agent.enableMCP(serverName);
+
+  if (result.success) {
+    console.log(chalk.green(`  ✓ ${result.message}`));
+  } else {
+    console.log(chalk.red(`  ✗ ${result.message}`));
+  }
+  console.log();
+}
+
+/**
+ * Handle MCP disable command
+ */
+async function handleMCPDisable(agent: AtlassianAgentSDK, serverName: string): Promise<void> {
+  if (!serverName) {
+    console.log(chalk.yellow('\n  Usage: mcp disable <server-name>\n'));
+    return;
+  }
+
+  console.log(chalk.blue(`\n  Stopping MCP server '${serverName}'...`));
+  const result = await agent.disableMCP(serverName);
+
+  if (result.success) {
+    console.log(chalk.green(`  ✓ ${result.message}`));
+  } else {
+    console.log(chalk.red(`  ✗ ${result.message}`));
   }
   console.log();
 }

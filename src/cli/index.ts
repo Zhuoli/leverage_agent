@@ -41,17 +41,48 @@ program
   .option('-m, --message <message>', 'Send a single message')
   .option('-h, --history <json>', 'Conversation history as JSON string')
   .option('--test-only', 'Test connection only (disable MCP and Skills)')
+  .option('--mcp <servers>', 'Enable specific MCP servers (comma-separated: atlassian,oci)')
+  .option('--no-mcp', 'Disable all MCP servers')
+  .option('--list-mcps', 'List available MCP servers and exit')
   .action(async (options) => {
+    // Handle --list-mcps
+    if (options.listMcps) {
+      const config = getConfig();
+      const agent = new AtlassianAgentSDK(config, { enableMCP: false, enableSkills: false });
+      const mcpConfigs = agent.getAvailableMCPConfigs();
+
+      console.log(chalk.blue('\n📦 Available MCP Servers:\n'));
+      if (mcpConfigs.length === 0) {
+        console.log(chalk.yellow('  No MCP servers configured. Check your .env file.'));
+      } else {
+        for (const mcp of mcpConfigs) {
+          const status = mcp.enabled ? chalk.green('enabled') : chalk.gray('disabled');
+          console.log(`  ${chalk.cyan(mcp.name)} - ${status}`);
+        }
+      }
+      console.log(chalk.gray('\nUse --mcp <name> to enable specific servers'));
+      console.log(chalk.gray('Example: make cli -- --mcp atlassian,oci\n'));
+      return;
+    }
+
     const spinner = await createSpinner('Initializing agent...');
 
     try {
       const config = getConfig();
 
-      // Agent options - disable MCP and Skills for test-only mode
-      const agentOptions = options.testOnly ? {
-        enableMCP: false,
-        enableSkills: false,
-      } : {};
+      // Build agent options based on CLI flags
+      const agentOptions: Record<string, any> = {};
+
+      if (options.testOnly) {
+        agentOptions.enableMCP = false;
+        agentOptions.enableSkills = false;
+      } else if (options.mcp === false) {
+        // --no-mcp flag
+        agentOptions.enableMCP = false;
+      } else if (typeof options.mcp === 'string') {
+        // --mcp <servers> flag
+        agentOptions.mcpServers = options.mcp.split(',').map((s: string) => s.trim());
+      }
 
       const agent = new AtlassianAgentSDK(config, agentOptions);
 

@@ -6,11 +6,9 @@
  */
 
 import { spawn, ChildProcess } from 'child_process';
-import { resolve, join } from 'path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import { Logger, LogCategory } from '../utils/logger.js';
-import type { CallToolResultSchema } from '@modelcontextprotocol/sdk/types.js';
+import { Logger } from '../utils/logger.js';
 
 export interface MCPServerConfig {
   name: string;
@@ -79,10 +77,21 @@ export class MCPClientManager {
       });
 
       // Create MCP client and transport
+      // Filter out undefined values from process.env and merge with config.env
+      const envVars: Record<string, string> = {};
+      for (const [key, value] of Object.entries(process.env)) {
+        if (value !== undefined) {
+          envVars[key] = value;
+        }
+      }
+      if (config.env) {
+        Object.assign(envVars, config.env);
+      }
+
       const transport = new StdioClientTransport({
         command: 'node',
         args: [config.serverPath],
-        env: { ...process.env, ...config.env },
+        env: envVars,
       });
 
       const client = new Client(
@@ -178,6 +187,44 @@ export class MCPClientManager {
    */
   isServerRunning(serverName: string): boolean {
     return this.servers.has(serverName);
+  }
+
+  /**
+   * Stop a specific MCP server
+   */
+  async stopServer(serverName: string): Promise<boolean> {
+    const server = this.servers.get(serverName);
+    if (!server) {
+      console.error(`Server not found: ${serverName}`);
+      return false;
+    }
+
+    try {
+      console.error(`Stopping MCP server: ${serverName}...`);
+      await server.client.close();
+      server.process.kill('SIGTERM');
+      this.servers.delete(serverName);
+      console.error(`✓ Stopped ${serverName}`);
+      return true;
+    } catch (error) {
+      console.error(`Error stopping ${serverName}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Get status of all servers
+   */
+  getServerStatus(): Array<{ name: string; running: boolean; toolCount: number }> {
+    const status: Array<{ name: string; running: boolean; toolCount: number }> = [];
+    for (const [name, server] of this.servers.entries()) {
+      status.push({
+        name,
+        running: true,
+        toolCount: server.tools.length,
+      });
+    }
+    return status;
   }
 
   /**
