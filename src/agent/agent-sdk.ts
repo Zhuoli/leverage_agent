@@ -5,7 +5,7 @@ import type { Config } from '../config/index.js';
 import { SkillsLoader } from '../skills/loader.js';
 import { createProvider, type BaseProvider } from '../providers/index.js';
 import type { Message } from '../providers/types.js';
-import type { ConversationMessage, AgentOptions } from './types.js';
+import type { ConversationMessage, AgentOptions, MCPServerInfo } from './types.js';
 import { FilesystemTools } from './filesystem-tools.js';
 import { SmartExploration } from './smart-exploration.js';
 import { MCPClientManager, type MCPServerConfig } from './mcp-client.js';
@@ -330,19 +330,17 @@ export class AtlassianAgentSDK {
   }
 
   /**
-   * Start individual MCP servers based on config flags
+   * Get all available MCP server configurations
    */
-  private async startMCPServers(): Promise<void> {
-    Logger.mcpStarting();
-
+  getAvailableMCPConfigs(): MCPServerConfig[] {
     const projectRoot = resolve(__dirname, '..', '..');
-    const servers: MCPServerConfig[] = [];
+    const configs: MCPServerConfig[] = [];
 
-    // Configure Atlassian MCP server if enabled
-    if (this.config.atlassianMcpEnabled && this.config.jiraUrl && this.config.confluenceUrl) {
-      servers.push({
+    // Atlassian MCP server config
+    if (this.config.jiraUrl && this.config.confluenceUrl) {
+      configs.push({
         name: 'atlassian',
-        enabled: true,
+        enabled: this.config.atlassianMcpEnabled ?? false,
         serverPath: join(projectRoot, 'dist', 'mcp', 'atlassian-server.js'),
         env: {
           ATLASSIAN_MCP_ENABLED: 'true',
@@ -357,11 +355,11 @@ export class AtlassianAgentSDK {
       });
     }
 
-    // Configure OCI MCP server if enabled
-    if (this.config.ociMcpEnabled && this.config.ociMcpRegion) {
-      servers.push({
+    // OCI MCP server config
+    if (this.config.ociMcpRegion) {
+      configs.push({
         name: 'oci',
-        enabled: true,
+        enabled: this.config.ociMcpEnabled ?? false,
         serverPath: join(projectRoot, 'dist', 'mcp', 'oci-server.js'),
         env: {
           OCI_MCP_ENABLED: 'true',
@@ -372,6 +370,33 @@ export class AtlassianAgentSDK {
           OCI_MCP_PROFILE: this.config.ociMcpProfile || 'DEFAULT',
         },
       });
+    }
+
+    return configs;
+  }
+
+  /**
+   * Start individual MCP servers based on config flags
+   */
+  private async startMCPServers(): Promise<void> {
+    Logger.mcpStarting();
+
+    const allConfigs = this.getAvailableMCPConfigs();
+    const servers: MCPServerConfig[] = [];
+
+    // Filter servers based on options.mcpServers if specified
+    const requestedServers = this.options.mcpServers;
+
+    for (const config of allConfigs) {
+      // If mcpServers option is specified, only start those servers
+      if (requestedServers && requestedServers.length > 0) {
+        if (requestedServers.includes(config.name)) {
+          servers.push({ ...config, enabled: true });
+        }
+      } else if (config.enabled) {
+        // Otherwise, use the default enabled status from environment
+        servers.push(config);
+      }
     }
 
     // Start all configured servers
@@ -680,6 +705,84 @@ When exploring a codebase, you MUST follow this systematic approach:
       count: this.skillsLoader.getCount(),
       names: this.skillsLoader.getSkillNames(),
     };
+  }
+
+  /**
+   * Get MCP server information (available, running, tool counts)
+   */
+  getMCPInfo(): MCPServerInfo[] {
+    const availableConfigs = this.getAvailableMCPConfigs();
+    const runningStatus = this.mcpClientManager.getServerStatus();
+
+    const mcpDescriptions: Record<string, string> = {
+      'atlassian': 'Jira & Confluence integration (search, create, update tickets and pages)',
+      'oci': 'Oracle Cloud Infrastructure management (compute, storage, networking)',
+    };
+
+    return availableConfigs.map(config => {
+      const running = runningStatus.find(s => s.name === config.name);
+      return {
+        name: config.name,
+        available: true,
+        running: !!running,
+        toolCount: running?.toolCount || 0,
+        description: mcpDescriptions[config.name] || 'MCP server',
+      };
+    });
+  }
+
+  /**
+   * Enable/start an MCP server by name
+   */
+  async enableMCP(serverName: string): Promise<{ success: boolean; message: string }> {
+    // Check if already running
+    if (this.mcpClientManager.isServerRunning(serverName)) {
+      return { success: false, message: `MCP server '${serverName}' is already running` };
+    }
+
+    // Find the config
+    const configs = this.getAvailableMCPConfigs();
+    const config = configs.find(c => c.name === serverName);
+
+    if (!config) {
+      const available = configs.map(c => c.name).join(', ');
+      return {
+        success: false,
+        message: `MCP server '${serverName}' not found. Available: ${available || 'none'}`
+      };
+    }
+
+    try {
+      await this.mcpClientManager.startServer({ ...config, enabled: true });
+      const toolCount = this.mcpClientManager.getServerStatus()
+        .find(s => s.name === serverName)?.toolCount || 0;
+      return {
+        success: true,
+        message: `Started MCP server '${serverName}' with ${toolCount} tools`
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to start '${serverName}': ${error}`
+      };
+    }
+  }
+
+  /**
+   * Disable/stop an MCP server by name
+   */
+  async disableMCP(serverName: string): Promise<{ success: boolean; message: string }> {
+    // Check if running
+    if (!this.mcpClientManager.isServerRunning(serverName)) {
+      return { success: false, message: `MCP server '${serverName}' is not running` };
+    }
+
+    const stopped = await this.mcpClientManager.stopServer(serverName);
+    if (stopped) {
+      return { success: true, message: `Stopped MCP server '${serverName}'` };
+    } else {
+      return { success: false, message: `Failed to stop MCP server '${serverName}'` };
+    }
   }
 
   /**

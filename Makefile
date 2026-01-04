@@ -97,13 +97,18 @@ format: ## Format code with Prettier
 
 ##@ Run Application
 
-app: build ## Launch the Electron desktop app
+app: build ## Launch the Electron desktop app (or use: ./chatbot.sh ui)
 	@echo "$(BLUE)Launching Atlassian AI Assistant...$(NC)"
 	@cd electron-app && npm start
 
 app-dev: build ## Launch the Electron app with DevTools
 	@echo "$(BLUE)Launching in development mode with DevTools...$(NC)"
 	@cd electron-app && npm run dev
+
+cli: build ## Launch the terminal chat assistant (or use: ./chatbot.sh cli)
+	@echo "$(BLUE)Starting Terminal Chat Assistant...$(NC)"
+	@echo "$(GREEN)Tip: Use ./chatbot.sh cli for more options (--help, --mcp, etc.)$(NC)"
+	@node dist/cli/index.js chat
 
 ##@ MCP Server Testing
 
